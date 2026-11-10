@@ -3,7 +3,7 @@ java = "25"
 maven = "latest"
 
 [tasks]
-build = "mvn clean compile"
+build = "BE/mvnw -f BE/pom.xml clean compile"
 check = "BE/check-health.sh"
-run = "BE/mvnw spring-boot:run"
-install = "BE/mvnw install"
+run = "BE/mvnw -f BE/pom.xml spring-boot:run"
+install = "BE/mvnw -f BE/pom.xml install"
