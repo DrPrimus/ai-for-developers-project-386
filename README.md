@@ -40,7 +40,8 @@
 
 ## Стек
 
-- Разное
+- **BE**: Java 25, Spring Boot 4.1, Maven
+- **FE**: React 19, TypeScript, Vite, Tailwind CSS 4, [shadcn/ui](https://ui.shadcn.com/)
 
 ## Установка
 
@@ -49,6 +50,19 @@
 ```bash
 git clone https://github.com/DrPrimus/ai-for-developers-project-386.git
 cd ai-for-developers-project-386
+hk install --mise   # включить pre-commit хук
+```
+
+Запуск фронтенда (порт 80, подробности в `FE/README.md`):
+
+```bash
+mise run fe-run
+```
+
+Запуск бэкенда:
+
+```bash
+mise run be-run
 ```
 
 ## Использование

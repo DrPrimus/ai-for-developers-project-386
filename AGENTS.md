@@ -2,25 +2,40 @@
 
 ## Проект
 
-Учебный проект Хекслета «AI for developers»: сервис бронирования календаря звонков. `README.md` — источник требований (сценарии, окно на 14 дней, константы рабочих часов, правила пересечения и одновременных запросов). Сейчас есть только бэкенд; фронтенда и слоя хранения данных ещё нет.
+Учебный проект Хекслета «AI for developers»: сервис бронирования календаря звонков. `README.md` — источник требований (сценарии, окно на 14 дней, константы рабочих часов, правила пересечения и одновременных запросов). Есть бэкенд и фронтенд; слоя хранения данных ещё нет.
 
 ## Структура
 
-- `BE/` — единственный модуль приложения (Spring Boot 4.1.2, Java 25, Maven). В корне репозитория нет сборочного файла.
+- `BE/` — модуль бэкенда (Spring Boot 4.1.2, Java 25, Maven). В корне репозитория нет сборочного файла.
 - `BE/src/main/java/ru/hexlet/_6/` — базовый пакет `ru.hexlet._6`, точка входа `Application.java`. Новый код кладите в этот пакет.
-- `.github/workflows/quality-gates.yml` — CI-гейт (запускает `mise run check` из `BE/`).
+- `FE/` — фронтенд: React 19, TypeScript, Vite 8, Tailwind CSS 4, UI-компоненты shadcn/ui. Алиас `@/*` → `FE/src/*`, компоненты shadcn/ui лежат в `FE/src/components/ui` и добавляются CLI (`npx shadcn@latest add <name>`), а не пишутся руками. Подробности — `FE/README.md`.
+- `.github/workflows/quality-gates.yml` — CI-гейт (запускает `mise run check`: бэкенд и фронтенд).
 - `.github/workflows/hexlet-check.yml` — автогенерируемая проверка Хекслета. Не редактируйте, не удаляйте и не переименовывайте её; не переименовывайте репозиторий.
 
 ## Команды
 
-Запускать из корня репозитория (или из любого подкаталога — mise находит корневой `mise.toml`):
+Запускать из корня репозитория. Бэкенд-задачи работают и из подкаталогов (mise находит корневой `mise.toml`, пути в задачах указаны через `BE/`), а `fe-*` — только из корня: внутри `npm --prefix FE`, и из `BE/` npm будет искать `BE/FE`.
 
-- `mise run build` — `mvnw clean compile`
-- `mise run check` — `mvnw clean test` (полная проверка; БД и внешние сервисы не нужны)
-- `mise run run` — запуск приложения
+Бэкенд:
+
+- `mise run be-build` — `mvnw clean compile`
+- `mise run be-check` — `mvnw clean test` (полная проверка; БД и внешние сервисы не нужны)
+- `mise run be-run` — запуск приложения
 - `BE/mvnw -f BE/pom.xml test` — эквивалент на чистом Maven
 - Один тест: `BE/mvnw -f BE/pom.xml -Dtest=ActuatorHealthTest test`
-- `hk install --mise` — один раз после клона: включает git-хук `pre-commit` из `hk.pkl`, который запускает `mise run check`. Сами хуки живут в `.git/` и в репозиторий не попадают, поэтому на каждой новой машине команду нужно повторить.
+
+Фронтенд:
+
+- `mise run fe-install` — `npm --prefix FE install` (зависимости в `FE/node_modules`)
+- `mise run fe-run` — dev-сервер Vite на http://localhost:80; порт и `strictPort` заданы в `FE/vite.config.ts`. Порт 80 слушается на всех интерфейсах (`host: true`), иначе macOS требует root для низкого порта
+- `mise run fe-build` — `npm --prefix FE run build` (`tsc -b` + сборка в `FE/dist`)
+- `mise run fe-check` — `npm --prefix FE run lint && npm --prefix FE run build` (`oxlint` + `tsc -b` + `vite build`)
+- `npm --prefix FE run dev|build|lint` — те же шаги без mise (нужен установленный Node)
+
+Общее:
+
+- `mise run check` — полная проверка проекта: `be-check` + `fe-check` (задачи запускаются параллельно)
+- `hk install --mise` — один раз после клона: включает git-хук `pre-commit` из `hk.pkl`, который запускает `mise run check` (бэкенд и фронтенд) на изменённые `BE/**`, `FE/**`, `mise.toml`, `hk.pkl`. Сами хуки живут в `.git/` и в репозиторий не попадают, поэтому на каждой новой машине команду нужно повторить.
 
 ## Подводный камень с форматированием
 

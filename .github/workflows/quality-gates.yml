@@ -25,7 +25,22 @@ jobs:
       - name: Install mise
         uses: jdx/mise-action@v5
 
-      - name: Run quality gates check
-        working-directory: BE
+      - name: Cache npm downloads
+        uses: actions/cache@v6
+        with:
+          path: ~/.npm
+          key: ${{ runner.os }}-npm-${{ hashFiles('FE/package-lock.json', 'mise.toml') }}
+          restore-keys: |
+            ${{ runner.os }}-npm-
+
+      - name: Cache frontend dependencies
+        uses: actions/cache@v6
+        with:
+          path: FE/node_modules
+          key: ${{ runner.os }}-node-modules-${{ hashFiles('FE/package-lock.json', 'mise.toml') }}
+          restore-keys: |
+            ${{ runner.os }}-node-modules-
+
+      - name: Run quality gates check (backend + frontend)
         run: |
           mise run check

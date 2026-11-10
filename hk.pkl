@@ -1,11 +1,11 @@
 amends "package://github.com/jdx/hk/releases/download/v2.11.1/hk@2.11.1#/Config.pkl"
 
-// `mise run check` is the same gate CI runs (spotless check + full test suite),
-// so a failing pre-commit means the commit would fail in quality-gates too.
+// `mise run check` runs both gates: backend (spotless check + full test suite, the same
+// one quality-gates CI runs via `mise run be-check`) and frontend (oxlint + tsc + vite build).
 // Formatting is not fixed automatically: run `BE/mvnw -f BE/pom.xml spotless:apply`.
 steps {
   ["verify"] = new Step {
-    glob = List("BE/**", "mise.toml", "hk.pkl")
+    glob = List("BE/**", "FE/**", "mise.toml", "hk.pkl")
     check = "mise run check"
   }
 }

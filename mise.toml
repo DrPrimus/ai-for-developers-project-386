@@ -2,8 +2,39 @@
 hk = { version = "2.11.1", workflow = "release.yml" }
 java = "25"
 maven = "latest"
+node = "24"
 
-[tasks]
-build = "BE/mvnw -f BE/pom.xml clean compile"
-check = "BE/mvnw -f BE/pom.xml clean test"
+[tasks.check]
+description = "Полная проверка проекта: бэкенд и фронтенд"
+depends = ["be-check", "fe-check"]
+
+[tasks.be-build]
+description = "Скомпилировать бэкенд (spotless check + compile)"
+run = "BE/mvnw -f BE/pom.xml clean compile"
+
+[tasks.be-check]
+description = "Полная проверка бэкенда (spotless check + тесты)"
+run = "BE/mvnw -f BE/pom.xml clean test"
+
+[tasks.be-run]
+description = "Запустить бэкенд (Spring Boot)"
 run = "BE/mvnw -f BE/pom.xml spring-boot:run"
+
+[tasks.fe-install]
+description = "Установить зависимости фронтенда"
+run = "npm --prefix FE install"
+
+[tasks.fe-run]
+description = "Запустить фронтенд (Vite) на http://localhost:80"
+depends = ["fe-install"]
+run = "npm --prefix FE run dev"
+
+[tasks.fe-build]
+description = "Собрать production-бандл фронтенда"
+depends = ["fe-install"]
+run = "npm --prefix FE run build"
+
+[tasks.fe-check]
+description = "Проверить фронтенд: линтер и сборка"
+depends = ["fe-install"]
+run = "npm --prefix FE run lint && npm --prefix FE run build"
