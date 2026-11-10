@@ -4,6 +4,5 @@ maven = "latest"
 
 [tasks]
 build = "BE/mvnw -f BE/pom.xml clean compile"
-check = "BE/check-health.sh"
+check = "BE/mvnw -f BE/pom.xml clean test"
 run = "BE/mvnw -f BE/pom.xml spring-boot:run"
-install = "BE/mvnw -f BE/pom.xml install"
