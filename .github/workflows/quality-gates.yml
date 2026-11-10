@@ -1,0 +1,39 @@
+name: Quality Gates
+
+on:
+  push:
+    branches:
+      - '**'
+    tags:
+      - '**'
+  pull_request:
+    branches:
+      - '**'
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    services:
+      # Maven cache service (not needed, but keeping structure)
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+
+      - name: Set up Git credentials (for git operations in CI)
+        run: |
+          git config --global user.email "action@github.com"
+          git config --global user.name "GitHub Action"
+
+      - name: Install mise
+        uses: jdx/mise-action@v1
+
+      - name: Cache mise store
+        uses: actions/cache@v4
+        with:
+          path: ~/.local/share/mise
+          key: mise-${{ runner.os }}-${{ hashFiles('BE/mise.toml') }}
+
+      - name: Run quality gates check
+        working-directory: BE
+        run: |
+          mise run check

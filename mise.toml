@@ -1,0 +1,9 @@
+[tools]
+java = "25"
+maven = "latest"
+
+[tasks]
+build = "mvn clean compile"
+check = "BE/check-health.sh"
+run = "BE/mvnw spring-boot:run"
+install = "BE/mvnw install"
