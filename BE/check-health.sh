@@ -22,7 +22,7 @@ START_PID=$!
 
 # Wait for application to start
 for i in $(seq 1 15); do
-    if curl -sf http://localhost:8080/actuator/health > /dev/null 2>&1; then
+    if curl -sf http://127.0.0.1:8080/actuator/health > /dev/null 2>&1; then
         echo "SMOKE TEST: OK"
         "$MWINW" -f BE/pom.xml spring-boot:stop 2>&1 || true
         exit 0
