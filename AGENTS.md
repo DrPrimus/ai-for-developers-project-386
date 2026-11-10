@@ -20,6 +20,7 @@
 - `mise run run` — запуск приложения
 - `BE/mvnw -f BE/pom.xml test` — эквивалент на чистом Maven
 - Один тест: `BE/mvnw -f BE/pom.xml -Dtest=ActuatorHealthTest test`
+- `hk install --mise` — один раз после клона: включает git-хук `pre-commit` из `hk.pkl`, который запускает `mise run check`. Сами хуки живут в `.git/` и в репозиторий не попадают, поэтому на каждой новой машине команду нужно повторить.
 
 ## Подводный камень с форматированием
 
