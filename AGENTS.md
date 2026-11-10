@@ -41,6 +41,26 @@ Spotless также удаляет неиспользуемые и сортир�
 
 Берите шаблоны импортов из существующих тестов, а не из примеров для Boot 3.
 
+## Коммиты: Conventional Commits
+
+Все новые коммиты оформляйте по [Conventional Commits](https://www.conventionalcommits.org/): `<type>(<scope>): <описание>`.
+
+- Типы: `feat`, `fix`, `refactor`, `test`, `docs`, `chore`, `build`, `ci`, `perf`, `style`.
+- Scope опционален; для этого проекта уместен `be`, например `feat(be): add meeting type endpoint`.
+- Описание — в повелительном наклонении, строчными буквами, без точки в конце.
+- Несовместимое изменение — `feat!:` или `feat(be)!:`, плюс футер `BREAKING CHANGE:` с пояснением.
+- Один коммит — одна логическая правка; не смешивайте фичу и форматирование.
+- В истории до этого правила есть коммиты вида `#2` — их не переписывайте, правило действует для новых коммитов.
+
+Примеры:
+
+```text
+feat(be): add meeting type creation
+fix(be): reject overlapping bookings
+test(be): cover concurrent slot booking
+chore: apply spotless formatting
+```
+
 ## Тестирование
 
 - `/actuator/health` должен оставаться в состоянии `UP`; `ActuatorHealthTest` — smoke-тест для этого.
