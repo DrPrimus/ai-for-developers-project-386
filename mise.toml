@@ -35,6 +35,6 @@ depends = ["fe-install"]
 run = "npm --prefix FE run build"
 
 [tasks.fe-check]
-description = "Проверить фронтенд: линтер и сборка"
+description = "Проверить фронтенд: линтер, сборка и HTTP-смоук"
 depends = ["fe-install"]
-run = "npm --prefix FE run lint && npm --prefix FE run build"
+run = "npm --prefix FE run lint && npm --prefix FE run test"

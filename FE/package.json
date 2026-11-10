@@ -8,6 +8,7 @@
     "build": "tsc -b && vite build",
     "lint": "oxlint",
     "typecheck": "tsc -b --noEmit",
+    "test": "npm run build && node scripts/smoke.mjs",
     "preview": "vite preview"
   },
   "dependencies": {

@@ -29,7 +29,7 @@
 - `mise run fe-install` — `npm --prefix FE install` (зависимости в `FE/node_modules`)
 - `mise run fe-run` — dev-сервер Vite на http://localhost:80; порт и `strictPort` заданы в `FE/vite.config.ts`. Порт 80 слушается на всех интерфейсах (`host: true`), иначе macOS требует root для низкого порта
 - `mise run fe-build` — `npm --prefix FE run build` (`tsc -b` + сборка в `FE/dist`)
-- `mise run fe-check` — `npm --prefix FE run lint && npm --prefix FE run build` (`oxlint` + `tsc -b` + `vite build`)
+- `mise run fe-check` — `npm --prefix FE run lint && npm --prefix FE run test` (`oxlint`, `tsc -b`, `vite build` и HTTP-смоук по собранному `dist`)
 - `npm --prefix FE run dev|build|lint` — те же шаги без mise (нужен установленный Node)
 
 Общее:
@@ -82,4 +82,5 @@ chore: apply spotless formatting
 ## Тестирование
 
 - `/actuator/health` должен оставаться в состоянии `UP`; `ActuatorHealthTest` — smoke-тест для этого.
+- Фронтенд проверяется HTTP-смоуком в `FE/scripts/smoke.mjs` (входит в `mise run fe-check`): поднимает `vite preview` на свободном порту и требует 200 для `/` и бандлов. E2E и компонентных тестов пока нет — если нужны, начинайте с Vitest + Testing Library.
 - Тестам не нужна внешняя инфраструктура, поэтому `mise run check` — достаточный шаг проверки.
