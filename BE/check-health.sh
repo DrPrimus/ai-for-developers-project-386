@@ -1,4 +1,5 @@
 #!/bin/bash
+set -o pipefail
 set -e
 
 # Maven wrapper - use absolute path from project root
@@ -6,7 +7,14 @@ PROJECT_ROOT="$(git rev-parse --show-toplevel 2>/dev/null || echo /)"
 MWINW="$PROJECT_ROOT/BE/mvnw"
 
 # Compile the project (type check) - use pom.xml in BE/ directory
-"$MWINW" -f BE/pom.xml clean compile 2>&1 | tail -3 | head -1
+# Check if compilation succeeds
+COMPILE_OUTPUT=$("$MWINW" -f BE/pom.xml clean compile 2>&1)
+COMPILE_EXIT=$?
+
+if [ $COMPILE_EXIT -ne 0 ]; then
+    echo "BUILD FAIL - compilation error, skip smoke test"
+    exit 1
+fi
 
 # Start the application
 "$MWINW" -f BE/pom.xml spring-boot:start 2>&1 > /dev/null &
