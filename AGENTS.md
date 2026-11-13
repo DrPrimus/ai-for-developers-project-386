@@ -84,3 +84,17 @@ chore: apply spotless formatting
 - `/actuator/health` должен оставаться в состоянии `UP`; `ActuatorHealthTest` — smoke-тест для этого.
 - Фронтенд проверяется HTTP-смоуком в `FE/scripts/smoke.mjs` (входит в `mise run fe-check`): поднимает `vite preview` на свободном порту и требует 200 для `/` и бандлов. E2E и компонентных тестов пока нет — если нужны, начинайте с Vitest + Testing Library.
 - Тестам не нужна внешняя инфраструктура, поэтому `mise run check` — достаточный шаг проверки.
+
+## Agent skills
+
+### Issue tracker
+
+Issues и спеки живут в GitHub Issues этого репозитория, работа через `gh` CLI. См. `docs/agents/issue-tracker.md`.
+
+### Triage labels
+
+Пять канонических ролей триажа с дефолтными именами меток. См. `docs/agents/triage-labels.md`.
+
+### Domain docs
+
+Один контекст (single-context). См. `docs/agents/domain.md`.
