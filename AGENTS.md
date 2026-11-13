@@ -29,12 +29,12 @@
 - `mise run fe-install` — `npm --prefix FE install` (зависимости в `FE/node_modules`)
 - `mise run fe-run` — dev-сервер Vite на http://localhost:80; порт и `strictPort` заданы в `FE/vite.config.ts`. Порт 80 слушается на всех интерфейсах (`host: true`), иначе macOS требует root для низкого порта
 - `mise run fe-build` — `npm --prefix FE run build` (`tsc -b` + сборка в `FE/dist`)
-- `mise run fe-check` — `npm --prefix FE run lint && npm --prefix FE run test` (`oxlint`, `tsc -b`, `vite build` и HTTP-смоук по собранному `dist`)
+- `mise run fe-check` — `node scripts/check.mjs fe`: `oxlint`, тесты Vitest, `tsc -b`, `vite build` и HTTP-смоук по собранному `dist`; печатает сводку по шагам
 - `npm --prefix FE run dev|build|lint` — те же шаги без mise (нужен установленный Node)
 
 Общее:
 
-- `mise run check` — полная проверка проекта: `be-check` + `fe-check` (задачи запускаются параллельно)
+- `mise run check` — полная проверка проекта через `scripts/check.mjs`: бэкенд и фронтенд запускаются последовательно, каждый в своём блоке; после каждой части печатается сводка, в конце — общая таблица по тестам. Цифры читаются из консольного вывода Maven и Vitest, файлы отчётов не создаются
 - `hk install --mise` — один раз после клона: включает git-хук `pre-commit` из `hk.pkl`, который запускает `mise run check` (бэкенд и фронтенд) на изменённые `BE/**`, `FE/**`, `mise.toml`, `hk.pkl`. Сами хуки живут в `.git/` и в репозиторий не попадают, поэтому на каждой новой машине команду нужно повторить.
 
 ## Подводный камень с форматированием

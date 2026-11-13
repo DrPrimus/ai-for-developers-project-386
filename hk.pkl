@@ -1,7 +1,8 @@
 amends "package://github.com/jdx/hk/releases/download/v2.11.1/hk@2.11.1#/Config.pkl"
 
-// `mise run check` runs both gates: backend (spotless check + full test suite, the same
-// one quality-gates CI runs via `mise run be-check`) and frontend (oxlint + tsc + vite build).
+// `mise run check` runs both gates sequentially: backend (spotless check + full test suite,
+// the same one quality-gates CI runs via `mise run be-check`) and frontend (oxlint + vitest +
+// tsc + vite build + HTTP smoke). It prints a summary for each part and a final total.
 // Formatting is not fixed automatically: run `BE/mvnw -f BE/pom.xml spotless:apply`.
 steps {
   ["verify"] = new Step {

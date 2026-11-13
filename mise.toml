@@ -6,8 +6,9 @@ maven = "latest"
 node = "24"
 
 [tasks.check]
-description = "Полная проверка проекта: бэкенд и фронтенд"
-depends = ["be-check", "fe-check"]
+description = "Полная проверка проекта с отдельными сводками по бэкенду и фронтенду"
+depends = ["fe-install"]
+run = "node scripts/check.mjs all"
 
 [tasks.be-build]
 description = "Скомпилировать бэкенд (spotless check + compile)"
@@ -36,6 +37,6 @@ depends = ["fe-install"]
 run = "npm --prefix FE run build"
 
 [tasks.fe-check]
-description = "Проверить фронтенд: линтер, сборка и HTTP-смоук"
+description = "Проверить фронтенд: линтер, тесты, сборка и HTTP-смоук"
 depends = ["fe-install"]
-run = "npm --prefix FE run lint && npm --prefix FE run test"
+run = "node scripts/check.mjs fe"
