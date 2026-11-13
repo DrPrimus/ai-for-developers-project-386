@@ -21,21 +21,35 @@ try {
   const baseUrl = server.resolvedUrls?.local?.[0]
   assert.ok(baseUrl, 'vite preview did not report a local URL')
 
-  const page = await fetch(baseUrl)
-  assert.equal(page.status, 200, `GET / вернул ${page.status}`)
-  assert.match(
-    page.headers.get('content-type') ?? '',
-    /text\/html/,
-    'GET / должен отдавать HTML',
-  )
+  const fetchPage = async (route) => {
+    const response = await fetch(new URL(route, baseUrl))
+    assert.equal(response.status, 200, `GET ${route} вернул ${response.status}`)
+    assert.match(
+      response.headers.get('content-type') ?? '',
+      /text\/html/,
+      `GET ${route} должен отдавать HTML`,
+    )
 
-  const html = await page.text()
-  assert.match(html, /<div id="root"><\/div>/, 'в HTML нет корневого узла #root')
+    const html = await response.text()
+    assert.match(
+      html,
+      /<div id="root"><\/div>/,
+      `в HTML ${route} нет корневого узла #root`,
+    )
+    return html
+  }
+
+  const html = await fetchPage('/')
   assert.match(
     html,
     /<title>Календарь звонков<\/title>/,
     'в HTML нет ожидаемого <title>',
   )
+
+  // Deep links must be served by the SPA fallback, not 404.
+  for (const route of ['/booking', '/admin']) {
+    await fetchPage(route)
+  }
 
   const assets = [...html.matchAll(/(?:src|href)="(\/assets\/[^"]+)"/g)].map(
     (match) => match[1],

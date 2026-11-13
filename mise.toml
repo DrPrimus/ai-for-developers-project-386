@@ -1,4 +1,5 @@
 [tools]
+gh = "2.103.3"
 hk = { version = "2.11.1", workflow = "release.yml" }
 java = "25"
 maven = "latest"

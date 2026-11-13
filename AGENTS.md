@@ -82,7 +82,7 @@ chore: apply spotless formatting
 ## Тестирование
 
 - `/actuator/health` должен оставаться в состоянии `UP`; `ActuatorHealthTest` — smoke-тест для этого.
-- Фронтенд проверяется HTTP-смоуком в `FE/scripts/smoke.mjs` (входит в `mise run fe-check`): поднимает `vite preview` на свободном порту и требует 200 для `/` и бандлов. E2E и компонентных тестов пока нет — если нужны, начинайте с Vitest + Testing Library.
+- Фронтенд: компонентные тесты — Vitest + Testing Library в `jsdom` (`FE/src/**/*.test.tsx`, конфиг в `FE/vite.config.ts`, setup — `FE/src/test/setup.ts`). Они входят в `npm run test` вместе со сборкой и HTTP-смоуком `FE/scripts/smoke.mjs`, который поднимает `vite preview` на свободном порту и требует 200 для `/` и бандлов. E2E пока нет — заводить на Playwright, когда появится сквозной сценарий бронирования.
 - Тестам не нужна внешняя инфраструктура, поэтому `mise run check` — достаточный шаг проверки.
 
 ## Agent skills
