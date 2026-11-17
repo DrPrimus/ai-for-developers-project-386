@@ -52,6 +52,9 @@ build/
 # Inside FE project (Vite + npm) - dependencies
 FE/node_modules/
 
+# Inside API contract project (TypeSpec + npm)
+api/node_modules/
+
 # Inside FE project - build output
 FE/dist/
 FE/dist-ssr/

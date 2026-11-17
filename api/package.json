@@ -1,0 +1,17 @@
+{
+  "name": "api",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "compile": "tsp compile .",
+    "check": "node scripts/check.mjs",
+    "generate": "tsp compile . && openapi-typescript openapi/openapi.yaml -o ../FE/src/api/schema.d.ts"
+  },
+  "devDependencies": {
+    "@typespec/compiler": "1.18.0",
+    "@typespec/http": "1.18.0",
+    "@typespec/openapi3": "1.18.0",
+    "openapi-typescript": "^7.13.0"
+  }
+}
