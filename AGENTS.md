@@ -11,7 +11,11 @@
 - `FE/` — фронтенд: React 19, TypeScript, Vite 8, Tailwind CSS 4, UI-компоненты shadcn/ui. Алиас `@/*` → `FE/src/*`, компоненты shadcn/ui лежат в `FE/src/components/ui` и добавляются CLI (`npx shadcn@latest add <name>`), а не пишутся руками. Свои компоненты — в `FE/src/components/booking` и `FE/src/components/admin`, единственный сетевой шов — `FE/src/api/client.ts`, форматирование дат — `FE/src/lib/datetime.ts`. Подробности — `FE/README.md`.
 - `FE/e2e/` — сквозной браузерный сценарий на Playwright (`FE/playwright.config.ts` поднимает настоящий Spring Boot и собранный фронтенд).
 - `api/` — контракт HTTP API на TypeSpec (Design First). Источник истины — `api/main.tsp`. Из него генерируются `api/openapi/openapi.yaml` и типы фронтенда `FE/src/api/schema.d.ts`; оба артефакта коммитятся и не редактируются руками. Бэкенд и фронтенд пишутся под этот контракт.
-- `.github/workflows/quality-gates.yml` — CI-гейт (устанавливает Chromium и запускает `mise run check`: контракт, бэкенд, фронтенд и E2E).
+- `Dockerfile`, `docker/` — один production-образ: multi-stage сборка фронтенда и Spring Boot jar, в runtime nginx отдаёт SPA и проксирует `/api/` и `/actuator/` в JVM на loopback-порту `BACKEND_PORT` (по умолчанию `8081`). `docker/entrypoint.sh` запускает оба процесса и координирует завершение по SIGTERM, шаблон nginx лежит в `docker/nginx/default.conf.template`.
+- `render.yaml` — Blueprint Render: сборка из корневого `Dockerfile`, health check `/actuator/health`.
+- `scripts/docker-check.mjs` — сборка образа и два запуска контейнера (нестандартный порт и `PORT=8080`): health через nginx, SPA, deep link, API и graceful shutdown.
+- `opencode.json`, `.env.example` — конфигурация Render MCP для OpenCode и памятка по `RENDER_API_KEY` (ключ не коммитится).
+- `.github/workflows/quality-gates.yml` — CI-гейт: job `check` устанавливает Chromium и запускает `mise run check` (контракт, бэкенд, фронтенд и E2E), а отдельный job `docker` запускает `mise run docker-check`.
 - `.github/workflows/hexlet-check.yml` — автогенерируемая проверка Хекслета. Не редактируйте, не удаляйте и не переименовывайте её; не переименовывайте репозиторий.
 
 ## Команды
@@ -43,8 +47,13 @@ E2E:
 
 - `mise run api-generate` — пересобрать `api/openapi/openapi.yaml` и `FE/src/api/schema.d.ts` из TypeSpec
 - `mise run api-check` — проверить компиляцию TypeSpec и актуальность сгенерированных артефактов
-- `mise run check` — полная проверка проекта через `scripts/check.mjs`: контракт API, бэкенд, фронтенд и E2E запускаются последовательно, каждый в своём блоке; после каждой части печатается сводка, в конце — общая таблица по тестам. Цифры читаются из консольного вывода Maven, Vitest и Playwright, файлы отчётов не создаются
-- `hk install --mise` — один раз после клона: включает git-хук `pre-commit` из `hk.pkl`, который запускает `mise run check` (контракт API, бэкенд, фронтенд и E2E) на изменённые `api/**`, `BE/**`, `FE/**`, `mise.toml`, `hk.pkl`. Сами хуки живут в `.git/` и в репозиторий не попадают, поэтому на каждой новой машине команду нужно повторить.
+- `mise run check` — полная проверка проекта через `scripts/check.mjs`: контракт API, бэкенд, фронтенд и E2E запускаются последовательно, каждый в своём блоке; после каждой части печатается сводка, в конце — общая таблица по тестам. Цифры читаются из консольного вывода Maven, Vitest и Playwright, файлы отчётов не создаются. Docker в этот шаг не входит — он запускается отдельным CI-job
+- `hk install --mise` — один раз после клона: включает git-хук `pre-commit` из `hk.pkl`, который запускает `mise run check` (контракт API, бэкенд, фронтенд и E2E) на изменённые `api/**`, `BE/**`, `FE/**`, `docker/**`, `scripts/**`, `Dockerfile`, `render.yaml`, `opencode.json`, `.dockerignore`, `.env.example`, `mise.toml`, `hk.pkl`. Сами хуки живут в `.git/` и в репозиторий не попадают, поэтому на каждой новой машине команду нужно повторить.
+
+Деплой и контейнер:
+
+- `mise run docker-check` — собрать production-образ и запустить его на нестандартном порту и на `PORT=8080`; проверяет health через nginx, SPA, deep link, API и остановку по SIGTERM. Входит в отдельный job `docker` в CI, но не в `mise run check`
+- `PUBLIC_URL=https://<service>.onrender.com mise run verify-public` — проверить уже развёрнутый сервис: сценарий владельца и гостя в Chromium, затем повторная бронь через API с ожиданием `409` и альтернатив. Задача сама ставит зависимости и Chromium (`fe-install` + `e2e-install`), отдельных ручных установок не требуется
 
 ## Подводный камень с форматированием
 
@@ -121,6 +130,7 @@ Refs: #13
 - Фронтенд: компонентные тесты — Vitest + Testing Library в `jsdom` (`FE/src/**/*.test.tsx`, конфиг в `FE/vite.config.ts`, setup — `FE/src/test/setup.ts`). Они входят в `npm run test` вместе со сборкой и HTTP-смоуком `FE/scripts/smoke.mjs`, который поднимает `vite preview` на свободном порту и требует 200 для `/` и бандлов.
 - E2E: Playwright в Chromium (`FE/e2e/*.spec.ts`) на настоящих серверах — Spring Boot с хранилищем в памяти и собранный фронтенд. Один счастливый путь: владелец создаёт тип встречи, гость бронирует первый доступный слот из интерфейса, владелец видит встречу в предстоящих. Часы настоящие, дата не фиксируется; ошибки, конфликт и границы времени остаются на швах HTTP и компонентных тестов. Входит в `mise run check` после фронтенда.
 - Бэкенд-тестам и компонентным тестам внешняя инфраструктура не нужна, но E2E поднимает настоящий Spring Boot и Chromium. Поэтому `mise run check` — достаточный шаг проверки: он прогоняет контракт, бэкенд, фронтенд и E2E, а отдельная инфраструктура нужна только для установки Chromium (`mise run e2e-install`).
+- Docker: `mise run docker-check` собирает образ и проверяет контейнер на двух портах, включая graceful shutdown. Это отдельный CI-job `docker`, потому что ему нужен Docker daemon; в `mise run check` он не входит. `mise run verify-public` проверяет уже развёрнутый экземпляр по `PUBLIC_URL` и требует сеть, поэтому остаётся ручным шагом.
 
 ## Agent skills
 

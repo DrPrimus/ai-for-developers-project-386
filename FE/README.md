@@ -106,6 +106,27 @@ mise run e2e           # сборка + npx playwright test
 Без mise: `cd FE && npx playwright install chromium && npm run build && npm run e2e`.
 Сценарий не фиксирует дату: слот выбирается из интерфейса первым доступным.
 
+## Проверка развёрнутого сервиса
+
+`scripts/verify-public.mjs` проверяет уже развёрнутый экземпляр, не поднимая
+локальных серверов. Базовый адрес обязателен и берётся из `PUBLIC_URL`:
+
+```bash
+PUBLIC_URL=https://<service>.onrender.com mise run verify-public
+# без mise: PUBLIC_URL=... node FE/scripts/verify-public.mjs
+# или из FE/: PUBLIC_URL=... npm run verify:public
+```
+
+Задача `mise run verify-public` сама ставит зависимости и Chromium
+(`fe-install` + `e2e-install`), отдельный `mise run e2e-install` не нужен.
+Скрипт проходит сценарий владельца и гостя в Chromium: создаёт тип встречи с
+уникальным именем, бронирует первый слот дня, где есть минимум два слота, и
+проверяет подтверждение, затем обновляет админку и ищет встречу в предстоящих. После этого тем же
+`meetingTypeId` и `startsAt` повторяет бронь напрямую через
+`POST /api/meetings` и требует `409` с непустым списком `slots`. При успехе
+печатает `PASS`, при ошибке — `FAIL` и завершается с ненулевым кодом. Таймауты
+рассчитаны на холодный старт free-инстанса Render (~минута).
+
 ## Добавление компонентов shadcn/ui
 
 ```bash
