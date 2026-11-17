@@ -68,6 +68,5 @@ jobs:
       - name: Remove leftover containers
         if: always()
         run: |
-          docker rm -f \
-            ai-for-developers-project-386-check-0 \
-            ai-for-developers-project-386-check-1 2>/dev/null || true
+          docker ps -aq --filter label=ai-for-developers-project-386.check=1 \
+            | xargs -r docker rm -f

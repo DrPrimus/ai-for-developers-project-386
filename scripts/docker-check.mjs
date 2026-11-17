@@ -12,8 +12,12 @@ import process from 'node:process'
 
 const IMAGE = 'ai-for-developers-project-386:local'
 const CONTAINER_BASE = 'ai-for-developers-project-386-check'
+// Every check container carries this label, so cleanup never depends on names.
+const LABEL = 'ai-for-developers-project-386.check=1'
 const BUILD_TIMEOUT_MS = 20 * 60 * 1000
 const HEALTH_TIMEOUT_MS = 5 * 60 * 1000
+const STOP_TIMEOUT_SECONDS = 30
+const STOP_BUDGET_MS = 15 * 1000
 const POLL_INTERVAL_MS = 1000
 
 const useColor = Boolean(process.stdout.isTTY) && !process.env.NO_COLOR
@@ -60,6 +64,12 @@ function describeFailure(result) {
   if (result.error) return result.error.message
   const output = `${result.stderr ?? ''}${result.stdout ?? ''}`.trim()
   return output || `код выхода ${result.status}`
+}
+
+function removeCheckContainers() {
+  const listed = docker(['ps', '-aq', '--filter', `label=${LABEL}`])
+  const ids = (listed.stdout ?? '').trim().split('\n').filter(Boolean)
+  if (ids.length > 0) docker(['rm', '-f', ...ids])
 }
 
 function isPortBusy(port) {
@@ -110,10 +120,9 @@ async function waitForHealth(port, container, deadline) {
   }
 
   const logs = docker(['logs', '--tail', '80', container])
+  const output = `${logs.stdout ?? ''}${logs.stderr ?? ''}`.trim()
   throw new Error(
-    `health не поднялся за ${HEALTH_TIMEOUT_MS / 1000} с (${lastError})\n${`${
-      logs.stdout ?? ''
-    }${logs.stderr ?? ''}`.trim()}`,
+    `health не поднялся за ${HEALTH_TIMEOUT_MS / 1000} с (${lastError})\n${output}`,
   )
 }
 
@@ -133,6 +142,24 @@ async function checkPage(port, path, label) {
     throw new Error(`${path}: в HTML нет точки монтирования #root`)
   }
   return `${label} отдаёт HTML с #root`
+}
+
+async function checkShutdown(container) {
+  const started = Date.now()
+  const result = docker(['stop', '-t', String(STOP_TIMEOUT_SECONDS), container], {
+    timeout: (STOP_TIMEOUT_SECONDS + 10) * 1000,
+  })
+  const elapsedMs = Date.now() - started
+  const seconds = (elapsedMs / 1000).toFixed(1)
+  if (result.status !== 0) {
+    throw new Error(`docker stop не удался: ${describeFailure(result)}`)
+  }
+  if (elapsedMs >= STOP_BUDGET_MS) {
+    throw new Error(
+      `остановка заняла ${seconds} с, ожидалось меньше ${STOP_BUDGET_MS / 1000} с`,
+    )
+  }
+  return `graceful shutdown за ${seconds} с`
 }
 
 async function checkMeetingTypes(port) {
@@ -157,7 +184,7 @@ async function runScenario(scenario, index) {
 
   console.log(color.dim(`\n▸ ${label}`))
 
-  docker(['rm', '-f', container])
+  removeCheckContainers()
 
   if (isPortBusy(port)) {
     return {
@@ -174,6 +201,8 @@ async function runScenario(scenario, index) {
     'run',
     '-d',
     '--rm',
+    '--label',
+    LABEL,
     '--name',
     container,
     '-e',
@@ -224,11 +253,20 @@ async function runScenario(scenario, index) {
       checks.push({ name: error.message, ok: false })
       console.log(`  ${FAIL} ${error.message}`)
     }
+
+    try {
+      const detail = await checkShutdown(container)
+      checks.push({ name: detail, ok: true })
+      console.log(`  ${OK} ${detail}`)
+    } catch (error) {
+      checks.push({ name: error.message, ok: false })
+      console.log(`  ${FAIL} ${error.message}`)
+    }
   } catch (error) {
     checks.push({ name: error.message, ok: false })
     console.log(`  ${FAIL} ${error.message}`)
   } finally {
-    docker(['rm', '-f', container])
+    removeCheckContainers()
   }
 
   return {
