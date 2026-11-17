@@ -7,18 +7,25 @@ export type Slot = components['schemas']['Slot']
 export type DaySlots = components['schemas']['DaySlots']
 export type SlotListResponse = components['schemas']['SlotListResponse']
 export type FieldError = components['schemas']['FieldError']
+export type Meeting = components['schemas']['Meeting']
+export type MeetingRequest = components['schemas']['MeetingRequest']
+export type SlotConflictResponse = components['schemas']['SlotConflictResponse']
 
 type ErrorBody = components['schemas']['ErrorResponse'] & {
   fieldErrors?: FieldError[]
+  date?: string
+  slots?: Slot[]
 }
 
 const API_BASE_URL = '/api'
 
-/** Ошибка API: статус, машиночитаемый код и ошибки полей для формы. */
+/** Ошибка API: статус, машиночитаемый код, ошибки полей и альтернативы занятого слота. */
 export class ApiError extends Error {
   readonly status: number
   readonly code: string
   readonly fieldErrors: FieldError[]
+  readonly date: string | null
+  readonly slots: Slot[]
 
   constructor(status: number, body: Partial<ErrorBody>) {
     super(body.message ?? 'Не удалось выполнить запрос')
@@ -26,6 +33,8 @@ export class ApiError extends Error {
     this.status = status
     this.code = body.code ?? 'UNKNOWN'
     this.fieldErrors = body.fieldErrors ?? []
+    this.date = body.date ?? null
+    this.slots = body.slots ?? []
   }
 }
 
@@ -70,4 +79,12 @@ export function createMeetingType(input: MeetingTypeCreate): Promise<MeetingType
 /** Свободные слоты типа встречи на всё окно бронирования. */
 export function getSlots(meetingTypeId: string): Promise<SlotListResponse> {
   return request<SlotListResponse>(`/meeting-types/${meetingTypeId}/slots`)
+}
+
+/** Бронирует слот: создаёт встречу для выбранного типа. */
+export function createMeeting(input: MeetingRequest): Promise<Meeting> {
+  return request<Meeting>('/meetings', {
+    method: 'POST',
+    body: JSON.stringify(input),
+  })
 }

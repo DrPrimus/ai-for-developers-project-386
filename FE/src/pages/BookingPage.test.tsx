@@ -1,9 +1,9 @@
-import { render, screen, within } from '@testing-library/react'
+import { render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter } from 'react-router'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-import { ApiError, getSlots, listMeetingTypes } from '@/api/client'
+import { ApiError, createMeeting, getSlots, listMeetingTypes } from '@/api/client'
 import { AppRoutes } from '@/App'
 
 vi.mock('@/api/client', async (importOriginal) => {
@@ -12,11 +12,13 @@ vi.mock('@/api/client', async (importOriginal) => {
     ...actual,
     listMeetingTypes: vi.fn(),
     getSlots: vi.fn(),
+    createMeeting: vi.fn(),
   }
 })
 
 const listMock = vi.mocked(listMeetingTypes)
 const slotsMock = vi.mocked(getSlots)
+const bookMock = vi.mocked(createMeeting)
 
 const CONSULTATION = {
   id: '11111111-1111-1111-1111-111111111111',
@@ -108,6 +110,26 @@ beforeEach(() => {
   listMock.mockResolvedValue([])
   slotsMock.mockResolvedValue(SLOTS)
 })
+
+const BOOKED = {
+  id: '33333333-3333-3333-3333-333333333333',
+  meetingType: {
+    id: CONSULTATION.id,
+    name: CONSULTATION.name,
+    durationMinutes: CONSULTATION.durationMinutes,
+  },
+  startsAt: '2026-11-17T09:30:00+03:00',
+  endsAt: '2026-11-17T10:00:00+03:00',
+}
+
+const SLOTS_AFTER_BOOKING = {
+  ...SLOTS,
+  days: SLOT_DAYS.map((day) =>
+    day.date === '2026-11-17' ? { date: day.date, slots: [day.slots[1]] } : day,
+  ),
+}
+
+const FIRST_SLOT = /вторник, 17 ноября 2026, 09:30–10:00/
 
 describe('/booking: выбор типа встречи', () => {
   it('показывает загрузку, пока типы встреча не загрузились', () => {
@@ -254,5 +276,120 @@ describe('/booking: календарь слотов', () => {
     expect(
       screen.queryByRole('list', { name: /календарь на 14 дней/i }),
     ).not.toBeInTheDocument()
+  })
+})
+
+describe('/booking: бронирование слота', () => {
+  async function openCalendar(user: ReturnType<typeof userEvent.setup>) {
+    listMock.mockResolvedValue([CONSULTATION, REVIEW])
+    renderBooking()
+    await selectConsultation(user)
+    return screen.findByRole('button', { name: FIRST_SLOT })
+  }
+
+  it('бронирует слот одним нажатием и показывает подтверждение с деталями', async () => {
+    const user = userEvent.setup()
+    bookMock.mockResolvedValue(BOOKED)
+    slotsMock.mockResolvedValueOnce(SLOTS).mockResolvedValueOnce(SLOTS_AFTER_BOOKING)
+
+    const slotButton = await openCalendar(user)
+    await user.click(slotButton)
+
+    const status = await screen.findByRole('status')
+    expect(status).toHaveTextContent(/встреча забронирована/i)
+    expect(status).toHaveTextContent('Консультация')
+    expect(status).toHaveTextContent('вторник, 17 ноября 2026')
+    expect(status).toHaveTextContent('09:30–10:00')
+    expect(status).toHaveTextContent('30 мин')
+    expect(bookMock).toHaveBeenCalledExactlyOnceWith({
+      meetingTypeId: CONSULTATION.id,
+      startsAt: '2026-11-17T09:30:00+03:00',
+    })
+
+    expect(
+      await screen.findByRole('list', { name: /календарь на 14 дней/i }),
+    ).toBeInTheDocument()
+    await waitFor(() =>
+      expect(
+        screen.queryByRole('button', { name: FIRST_SLOT }),
+      ).not.toBeInTheDocument(),
+    )
+  })
+
+  it('из подтверждения возвращает к выбору другого типа', async () => {
+    const user = userEvent.setup()
+    bookMock.mockResolvedValue(BOOKED)
+
+    const slotButton = await openCalendar(user)
+    await user.click(slotButton)
+
+    const status = await screen.findByRole('status')
+    await user.click(
+      within(status).getByRole('button', { name: 'Выбрать другой тип' }),
+    )
+
+    expect(await screen.findByRole('button', { name: /Ревью кода/ })).toBeInTheDocument()
+    expect(screen.queryByRole('status')).not.toBeInTheDocument()
+  })
+
+  it('блокирует кнопки слотов, пока запрос выполняется', async () => {
+    const user = userEvent.setup()
+    bookMock.mockReturnValue(new Promise(() => {}))
+
+    const slotButton = await openCalendar(user)
+    await user.click(slotButton)
+
+    await waitFor(() => expect(slotButton).toBeDisabled())
+    expect(bookMock).toHaveBeenCalledTimes(1)
+  })
+
+  it('показывает альтернативы, когда слот только что заняли', async () => {
+    const user = userEvent.setup()
+    const alternative = slot('2026-11-17T10:00:00+03:00', '2026-11-17T10:30:00+03:00')
+    bookMock
+      .mockRejectedValueOnce(
+        new ApiError(409, {
+          code: 'SLOT_TAKEN',
+          message: 'Слот уже занят',
+          date: '2026-11-17',
+          slots: [alternative],
+        }),
+      )
+      .mockResolvedValueOnce({ ...BOOKED, ...alternative })
+
+    const slotButton = await openCalendar(user)
+    await user.click(slotButton)
+
+    const alert = await screen.findByRole('alert')
+    expect(alert).toHaveTextContent('Слот только что заняли')
+    expect(alert).toHaveTextContent('вторник, 17 ноября 2026')
+
+    const replacement = within(alert).getByRole('button', {
+      name: /вторник, 17 ноября 2026, 10:00–10:30/,
+    })
+    await waitFor(() => expect(slotsMock).toHaveBeenCalledTimes(2))
+
+    await user.click(replacement)
+
+    expect(bookMock).toHaveBeenLastCalledWith({
+      meetingTypeId: CONSULTATION.id,
+      startsAt: alternative.startsAt,
+    })
+    expect(await screen.findByRole('status')).toHaveTextContent('10:00–10:30')
+  })
+
+  it('показывает ошибку запроса и оставляет календарь доступным', async () => {
+    const user = userEvent.setup()
+    bookMock.mockRejectedValue(
+      new ApiError(0, { code: 'NETWORK_ERROR', message: 'Нет сети' }),
+    )
+
+    const slotButton = await openCalendar(user)
+    await user.click(slotButton)
+
+    const alert = await screen.findByRole('alert')
+    expect(alert).toHaveTextContent(/не удалось забронировать слот/i)
+    expect(slotButton).toBeEnabled()
+    expect(slotsMock).toHaveBeenCalledTimes(1)
   })
 })
