@@ -82,6 +82,15 @@ test(be): cover concurrent slot booking
 chore: apply spotless formatting
 ```
 
+## Релизы
+
+- `.github/workflows/release-please.yml` запускает `googleapis/release-please-action@v5` на push в `main`; тег и GitHub Release создаются после мержа release PR. Секретов, кроме `GITHUB_TOKEN`, не требуется.
+- Релиз один на весь репозиторий: стратегия `simple` в корневом `release-please-config.json`, текущая версия — в `.release-please-manifest.json` (старт `0.1.0`). Теги — `vX.Y.Z` без префикса компонента.
+- `CHANGELOG.md` и версия генерируются release-please; не редактируйте их руками. Изменения для релиза берутся из Conventional Commits.
+- Все типы из раздела выше (`feat`, `fix`, `perf`, `revert`, `refactor`, `build`, `ci`, `test`, `docs`, `style`, `chore`) включены в `changelog-sections`. Scope (`be`, `fe`, `api`, …) выводится автоматически как `**scope:**`, поэтому новые scope не требуют правки конфига; новый тип коммита — требует.
+- `bump-minor-pre-major: true`: до `1.0.0` несовместимые изменения поднимают minor, а не major.
+- Ограничение `GITHUB_TOKEN`: созданный им release PR не запускает `pull_request`-workflow автоматически, поэтому `quality-gates` на нём может не стартовать. Его можно запустить, отправив пустой коммит в ветку `release-please--branches--main` или переоткрыв PR; после мержа `quality-gates` выполнится на push в `main`.
+
 ## Тестирование
 
 - `/actuator/health` должен оставаться в состоянии `UP`; `ActuatorHealthTest` — smoke-тест для этого.
