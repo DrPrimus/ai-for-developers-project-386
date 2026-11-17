@@ -118,8 +118,8 @@ model ValidationErrorResponse extends ErrorResponse {
   fieldErrors?: FieldError[];
 }
 
-/** Ошибка занятого слота: альтернативы того же дня после конфликта. */
-model SlotConflictResponse extends ErrorResponse {
+/** Ошибка занятого слота: альтернативы того же дня после пересечения. */
+model SlotTakenResponse extends ErrorResponse {
   date: plainDate;
   slots: Slot[];
 }
@@ -154,9 +154,9 @@ model MeetingTypeNotFoundResponse {
 }
 
 @error
-model SlotTakenResponse {
+model SlotTakenErrorResponse {
   @statusCode statusCode: 409;
-  @body body: SlotConflictResponse;
+  @body body: SlotTakenResponse;
 }
 
 @route("/api/meeting-types")
@@ -186,7 +186,7 @@ interface Meetings {
     | BadRequestResponse
     | InvalidSlotResponse
     | MeetingTypeNotFoundResponse
-    | SlotTakenResponse;
+    | SlotTakenErrorResponse;
 
   /** Предстоящие встречи в окне бронирования, отсортированные по началу. */
   @get

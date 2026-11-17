@@ -1,7 +1,5 @@
 import type { MeetingType } from '@/api/client'
-import { Button } from '@/components/ui/button'
-
-type LoadState = 'loading' | 'ready' | 'error'
+import { LoadStateNotice, type LoadState } from '@/components/LoadStateNotice'
 
 type Props = {
   items: MeetingType[]
@@ -12,23 +10,16 @@ type Props = {
 
 /** Карточки типов встреч: название, описание и длительность, выбор одним нажатием. */
 export function MeetingTypePicker({ items, state, onSelect, onRetry }: Props) {
-  if (state === 'loading') {
-    return <p className="text-sm text-muted-foreground">Загружаем типы встреч…</p>
-  }
-
-  if (state === 'error') {
+  if (state !== 'ready' || items.length === 0) {
     return (
-      <div role="alert" className="flex flex-col items-start gap-2">
-        <p className="text-sm text-destructive">Не удалось загрузить типы встреч.</p>
-        <Button type="button" variant="outline" onClick={onRetry}>
-          Повторить
-        </Button>
-      </div>
+      <LoadStateNotice
+        state={state}
+        loadingText="Загружаем типы встреч…"
+        errorText="Не удалось загрузить типы встреч."
+        emptyText="Пока нет типов встреч."
+        onRetry={onRetry}
+      />
     )
-  }
-
-  if (items.length === 0) {
-    return <p className="text-sm text-muted-foreground">Пока нет типов встреч.</p>
   }
 
   return (

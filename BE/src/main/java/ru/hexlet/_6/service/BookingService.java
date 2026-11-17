@@ -26,7 +26,7 @@ import ru.hexlet._6.store.InMemoryStore;
 public class BookingService {
 
   /** Результат попытки бронирования. */
-  public sealed interface Result permits Result.Booked, Result.InvalidSlot, Result.Conflict {
+  public sealed interface Result permits Result.Booked, Result.InvalidSlot, Result.Overlap {
 
     /** Встреча создана. */
     record Booked(Meeting meeting) implements Result {}
@@ -35,7 +35,7 @@ public class BookingService {
     record InvalidSlot() implements Result {}
 
     /** Слот пересекается с существующей встречей; альтернативы — свободные слоты того же дня. */
-    record Conflict(LocalDate date, List<SlotResponse> slots) implements Result {}
+    record Overlap(LocalDate date, List<SlotResponse> slots) implements Result {}
   }
 
   private final Clock clock;
@@ -61,14 +61,14 @@ public class BookingService {
       return new Result.InvalidSlot();
     }
 
+    List<SlotResponse> freeSlots = slotService.slotsForDay(meetingType, date);
     Instant endsAt = startsAt.plus(duration);
     if (store.meetings().stream().anyMatch(meeting -> overlaps(meeting, startsAt, endsAt))) {
-      return new Result.Conflict(date, slotService.slotsForDay(meetingType, date));
+      return new Result.Overlap(date, freeSlots);
     }
 
     boolean isSlotStart =
-        slotService.slotsForDay(meetingType, date).stream()
-            .anyMatch(slot -> slot.startsAt().toInstant().equals(startsAt));
+        freeSlots.stream().anyMatch(slot -> slot.startsAt().toInstant().equals(startsAt));
     if (!isSlotStart) {
       return new Result.InvalidSlot();
     }
@@ -90,20 +90,12 @@ public class BookingService {
     }
 
     LocalDate today = LocalDate.ofInstant(now, CalendarRules.TIME_ZONE);
-    LocalDate lastDay = today.plusDays(CalendarRules.BOOKING_WINDOW_DAYS - 1L);
-    if (date.isBefore(today) || date.isAfter(lastDay)) {
-      return false;
-    }
-    if (!CalendarRules.WORK_DAYS.contains(date.getDayOfWeek())) {
+    if (!CalendarRules.isWithinWindow(date, today) || !CalendarRules.isWorkDay(date)) {
       return false;
     }
 
-    OffsetDateTime workStart =
-        date.atTime(CalendarRules.WORK_DAY_START)
-            .atZone(CalendarRules.TIME_ZONE)
-            .toOffsetDateTime();
-    OffsetDateTime workEnd =
-        date.atTime(CalendarRules.WORK_DAY_END).atZone(CalendarRules.TIME_ZONE).toOffsetDateTime();
+    OffsetDateTime workStart = CalendarRules.workDayStart(date);
+    OffsetDateTime workEnd = CalendarRules.workDayEnd(date);
     OffsetDateTime start = OffsetDateTime.ofInstant(startsAt, CalendarRules.TIME_ZONE);
     OffsetDateTime end = OffsetDateTime.ofInstant(startsAt.plus(duration), CalendarRules.TIME_ZONE);
 

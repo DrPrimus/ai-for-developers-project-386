@@ -9,7 +9,7 @@ export type SlotListResponse = components['schemas']['SlotListResponse']
 export type FieldError = components['schemas']['FieldError']
 export type Meeting = components['schemas']['Meeting']
 export type MeetingRequest = components['schemas']['MeetingRequest']
-export type SlotConflictResponse = components['schemas']['SlotConflictResponse']
+export type SlotTakenResponse = components['schemas']['SlotTakenResponse']
 export type UpcomingMeetingsResponse =
   components['schemas']['UpcomingMeetingsResponse']
 

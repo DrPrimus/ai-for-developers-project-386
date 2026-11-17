@@ -4,17 +4,17 @@ import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
-import jakarta.validation.constraints.Size;
 import ru.hexlet._6.domain.CalendarRules;
 import ru.hexlet._6.validation.MultipleOf;
+import ru.hexlet._6.validation.TrimmedSize;
 
 /** Тело запроса на создание типа встречи. */
 public record CreateMeetingTypeRequest(
     @NotBlank(message = "Укажите название")
-        @Size(max = 100, message = "Название должно быть не длиннее 100 символов")
+        @TrimmedSize(max = 100, message = "Название должно быть не длиннее 100 символов")
         String name,
     @NotBlank(message = "Укажите описание")
-        @Size(max = 500, message = "Описание должно быть не длиннее 500 символов")
+        @TrimmedSize(max = 500, message = "Описание должно быть не длиннее 500 символов")
         String description,
     @NotNull(message = "Укажите длительность")
         @Min(

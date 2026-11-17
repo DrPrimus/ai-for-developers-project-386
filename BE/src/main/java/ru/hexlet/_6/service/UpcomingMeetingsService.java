@@ -12,6 +12,7 @@ import ru.hexlet._6.api.MeetingTypeSummaryResponse;
 import ru.hexlet._6.api.UpcomingMeetingsResponse;
 import ru.hexlet._6.domain.CalendarRules;
 import ru.hexlet._6.domain.Meeting;
+import ru.hexlet._6.domain.MeetingType;
 import ru.hexlet._6.store.InMemoryStore;
 
 /**
@@ -36,33 +37,33 @@ public class UpcomingMeetingsService {
   public UpcomingMeetingsResponse upcoming() {
     Instant now = clock.instant();
     LocalDate today = LocalDate.ofInstant(now, CalendarRules.TIME_ZONE);
-    LocalDate lastDay = today.plusDays(CalendarRules.BOOKING_WINDOW_DAYS - 1L);
-    Instant windowStart = today.atStartOfDay(CalendarRules.TIME_ZONE).toInstant();
-    Instant windowEnd = lastDay.plusDays(1).atStartOfDay(CalendarRules.TIME_ZONE).toInstant();
 
     List<MeetingResponse> items =
         store.meetings().stream()
             .filter(meeting -> meeting.startsAt().isAfter(now))
-            .filter(meeting -> !meeting.startsAt().isBefore(windowStart))
-            .filter(meeting -> meeting.startsAt().isBefore(windowEnd))
+            .filter(meeting ->
+                CalendarRules.isWithinWindow(
+                    LocalDate.ofInstant(meeting.startsAt(), CalendarRules.TIME_ZONE), today))
             .sorted(Comparator.comparing(Meeting::startsAt))
             .map(this::toResponse)
             .toList();
 
     return new UpcomingMeetingsResponse(
-        CalendarRules.TIME_ZONE.getId(), new BookingWindowResponse(today, lastDay), items);
+        CalendarRules.TIME_ZONE.getId(),
+        new BookingWindowResponse(today, CalendarRules.windowLastDay(today)),
+        items);
   }
 
   private MeetingResponse toResponse(Meeting meeting) {
-    MeetingTypeSummaryResponse summary =
+    MeetingType type =
         store
             .meetingType(meeting.meetingTypeId())
-            .map(type ->
-                MeetingTypeSummaryResponse.of(
-                    type.id().toString(), type.name(), meeting.durationMinutes()))
-            .orElseGet(() ->
-                MeetingTypeSummaryResponse.of(
-                    meeting.meetingTypeId().toString(), "", meeting.durationMinutes()));
-    return MeetingResponse.from(meeting, summary);
+            .orElseThrow(() ->
+                new IllegalStateException(
+                    "Встреча ссылается на несуществующий тип: " + meeting.meetingTypeId()));
+    return MeetingResponse.from(
+        meeting,
+        MeetingTypeSummaryResponse.of(
+            type.id().toString(), type.name(), meeting.durationMinutes()));
   }
 }

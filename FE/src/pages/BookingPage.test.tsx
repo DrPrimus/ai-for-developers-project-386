@@ -5,6 +5,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { ApiError, createMeeting, getSlots, listMeetingTypes } from '@/api/client'
 import { AppRoutes } from '@/App'
+import { CONSULTATION } from '@/test/fixtures'
 
 vi.mock('@/api/client', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@/api/client')>()
@@ -19,13 +20,6 @@ vi.mock('@/api/client', async (importOriginal) => {
 const listMock = vi.mocked(listMeetingTypes)
 const slotsMock = vi.mocked(getSlots)
 const bookMock = vi.mocked(createMeeting)
-
-const CONSULTATION = {
-  id: '11111111-1111-1111-1111-111111111111',
-  name: 'Консультация',
-  description: 'Разбор задачи',
-  durationMinutes: 30,
-}
 
 const REVIEW = {
   id: '22222222-2222-2222-2222-222222222222',
@@ -343,6 +337,26 @@ describe('/booking: бронирование слота', () => {
     expect(bookMock).toHaveBeenCalledTimes(1)
   })
 
+  it('не теряет фокус и календарь после успешной брони', async () => {
+    const user = userEvent.setup()
+    bookMock.mockResolvedValue(BOOKED)
+    slotsMock.mockResolvedValueOnce(SLOTS).mockResolvedValueOnce(SLOTS_AFTER_BOOKING)
+
+    const slotButton = await openCalendar(user)
+    await user.click(slotButton)
+
+    const status = await screen.findByRole('status')
+    await waitFor(() => expect(status).toHaveFocus())
+    expect(
+      await screen.findByRole('list', { name: /календарь на 14 дней/i }),
+    ).toBeInTheDocument()
+    await waitFor(() =>
+      expect(
+        screen.queryByRole('list', { name: /календарь на 14 дней/i }),
+      ).toHaveTextContent(/10:00–10:30/),
+    )
+  })
+
   it('показывает альтернативы, когда слот только что заняли', async () => {
     const user = userEvent.setup()
     const alternative = slot('2026-11-17T10:00:00+03:00', '2026-11-17T10:30:00+03:00')
@@ -376,6 +390,38 @@ describe('/booking: бронирование слота', () => {
       startsAt: alternative.startsAt,
     })
     expect(await screen.findByRole('status')).toHaveTextContent('10:00–10:30')
+  })
+
+  it('не теряет фокус и календарь после пересечения, блокируя альтернативы до ответа', async () => {
+    const user = userEvent.setup()
+    const alternative = slot('2026-11-17T10:00:00+03:00', '2026-11-17T10:30:00+03:00')
+    bookMock
+      .mockRejectedValueOnce(
+        new ApiError(409, {
+          code: 'SLOT_TAKEN',
+          message: 'Слот уже занят',
+          date: '2026-11-17',
+          slots: [alternative],
+        }),
+      )
+      .mockReturnValueOnce(new Promise(() => {}))
+
+    const slotButton = await openCalendar(user)
+    await user.click(slotButton)
+
+    const alert = await screen.findByRole('alert')
+    await waitFor(() => expect(alert).toHaveFocus())
+    expect(
+      screen.getByRole('list', { name: /календарь на 14 дней/i }),
+    ).toBeInTheDocument()
+
+    const replacement = within(alert).getByRole('button', {
+      name: /вторник, 17 ноября 2026, 10:00–10:30/,
+    })
+    await user.click(replacement)
+
+    await waitFor(() => expect(replacement).toBeDisabled())
+    expect(bookMock).toHaveBeenCalledTimes(2)
   })
 
   it('показывает ошибку запроса и оставляет календарь доступным', async () => {

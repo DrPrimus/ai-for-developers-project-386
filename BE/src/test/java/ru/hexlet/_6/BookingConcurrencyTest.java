@@ -3,6 +3,8 @@ package ru.hexlet._6;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.jayway.jsonpath.JsonPath;
+import java.time.Instant;
+import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
@@ -30,7 +32,7 @@ import ru.hexlet._6.support.TestClockConfiguration;
  * <p>Барьер из двух латчей гарантирует, что все участники уже готовы и стартуют вместе, поэтому
  * запросы приходят на сервер почти одновременно. Раундов много: один раунд может пройти случайно,
  * если планировщик сериализует потоки. Инвариант проверяется как «ровно один 201, остальные 409, в
- * хранилище одна встреча», а не как конкретный порядок ответов.
+ * предстоящих одна встреча», а не как конкретный порядок ответов.
  */
 @SpringBootTest(webEnvironment = WebEnvironment.RANDOM_PORT)
 @AutoConfigureTestRestTemplate
@@ -84,7 +86,9 @@ class BookingConcurrencyTest {
         assertThat(statuses.stream().filter(HttpStatus.CONFLICT::equals).toList())
             .as("раунд %d: остальные 409", round)
             .hasSize(PARTICIPANTS - 1);
-        assertThat(store.meetings()).as("раунд %d: в хранилище одна встреча", round).hasSize(1);
+        assertThat(upcomingStartsAt())
+            .as("раунд %d: в предстоящих ровно одна встреча на этот слот", round)
+            .containsExactly(OffsetDateTime.parse(STARTS_AT).toInstant());
       }
     } finally {
       pool.shutdownNow();
@@ -107,5 +111,14 @@ class BookingConcurrencyTest {
         .postForEntity(
             "/api/meetings", new BookSlotRequestBody(meetingTypeId, STARTS_AT), String.class)
         .getStatusCode();
+  }
+
+  /** Инвариант проверяется через публичный список предстоящих, а не через поля хранилища. */
+  private List<Instant> upcomingStartsAt() {
+    ResponseEntity<String> response =
+        restTemplate.getForEntity("/api/meetings/upcoming", String.class);
+    assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+    List<String> startsAt = JsonPath.read(response.getBody(), "$.items[*].startsAt");
+    return startsAt.stream().map(value -> OffsetDateTime.parse(value).toInstant()).toList();
   }
 }

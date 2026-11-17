@@ -2,8 +2,6 @@ package ru.hexlet._6.api;
 
 import jakarta.validation.Valid;
 import java.net.URI;
-import java.util.Optional;
-import java.util.UUID;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -22,10 +20,13 @@ public class MeetingTypeController {
 
   private final InMemoryStore store;
   private final SlotService slotService;
+  private final MeetingTypeResolver meetingTypeResolver;
 
-  public MeetingTypeController(InMemoryStore store, SlotService slotService) {
+  public MeetingTypeController(
+      InMemoryStore store, SlotService slotService, MeetingTypeResolver meetingTypeResolver) {
     this.store = store;
     this.slotService = slotService;
+    this.meetingTypeResolver = meetingTypeResolver;
   }
 
   @GetMapping
@@ -47,18 +48,6 @@ public class MeetingTypeController {
   /** Свободные слоты типа встречи на всё окно бронирования; неизвестный тип — 404. */
   @GetMapping("/{meetingTypeId}/slots")
   public SlotListResponse slots(@PathVariable String meetingTypeId) {
-    MeetingType meetingType =
-        parseUuid(meetingTypeId)
-            .flatMap(store::meetingType)
-            .orElseThrow(MeetingTypeNotFoundException::new);
-    return slotService.slotsFor(meetingType);
-  }
-
-  private static Optional<UUID> parseUuid(String value) {
-    try {
-      return Optional.of(UUID.fromString(value));
-    } catch (IllegalArgumentException exception) {
-      return Optional.empty();
-    }
+    return slotService.slotsFor(meetingTypeResolver.require(meetingTypeId));
   }
 }

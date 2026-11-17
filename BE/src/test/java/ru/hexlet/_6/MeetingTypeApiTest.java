@@ -117,6 +117,22 @@ class MeetingTypeApiTest {
   }
 
   @Test
+  void nameAndDescriptionLengthIsMeasuredAfterTrim() throws Exception {
+    MvcResult result =
+        create(body("\"" + "я".repeat(100) + " \"", "\"" + "я".repeat(500) + "  \"", "30"));
+
+    assertThat(result.getResponse().getStatus()).isEqualTo(201);
+    assertThat(result.getResponse().getContentAsString())
+        .contains("\"name\":\"" + "я".repeat(100) + "\"")
+        .contains("\"description\":\"" + "я".repeat(500) + "\"");
+  }
+
+  @Test
+  void wronglyTypedDurationIsReportedAsFieldError() throws Exception {
+    assertFieldError(body("\"Консультация\"", "\"Описание\"", "\"abc\""), "durationMinutes");
+  }
+
+  @Test
   void blankDescriptionIsRejected() throws Exception {
     assertFieldError(body("\"Консультация\"", "\"\"", "30"), "description");
   }

@@ -7,8 +7,8 @@
 ## Структура
 
 - `BE/` — модуль бэкенда (Spring Boot 4.1.2, Java 25, Maven). В корне репозитория нет сборочного файла.
-- `BE/src/main/java/ru/hexlet/_6/` — базовый пакет `ru.hexlet._6`, точка входа `Application.java`. Новый код кладите в этот пакет.
-- `FE/` — фронтенд: React 19, TypeScript, Vite 8, Tailwind CSS 4, UI-компоненты shadcn/ui. Алиас `@/*` → `FE/src/*`, компоненты shadcn/ui лежат в `FE/src/components/ui` и добавляются CLI (`npx shadcn@latest add <name>`), а не пишутся руками. Подробности — `FE/README.md`.
+- `BE/src/main/java/ru/hexlet/_6/` — базовый пакет `ru.hexlet._6`, точка входа `Application.java`. Новый код кладите в этот пакет. Внутри: `api/` (контроллеры, DTO, обработчик ошибок), `domain/` (правила календаря и модели), `service/` (слоты, бронирование, предстоящие встречи), `store/` (хранилище в памяти), `config/` (часы сервиса), `validation/` (кастомные ограничения).
+- `FE/` — фронтенд: React 19, TypeScript, Vite 8, Tailwind CSS 4, UI-компоненты shadcn/ui. Алиас `@/*` → `FE/src/*`, компоненты shadcn/ui лежат в `FE/src/components/ui` и добавляются CLI (`npx shadcn@latest add <name>`), а не пишутся руками. Свои компоненты — в `FE/src/components/booking` и `FE/src/components/admin`, единственный сетевой шов — `FE/src/api/client.ts`, форматирование дат — `FE/src/lib/datetime.ts`. Подробности — `FE/README.md`.
 - `FE/e2e/` — сквозной браузерный сценарий на Playwright (`FE/playwright.config.ts` поднимает настоящий Spring Boot и собранный фронтенд).
 - `api/` — контракт HTTP API на TypeSpec (Design First). Источник истины — `api/main.tsp`. Из него генерируются `api/openapi/openapi.yaml` и типы фронтенда `FE/src/api/schema.d.ts`; оба артефакта коммитятся и не редактируются руками. Бэкенд и фронтенд пишутся под этот контракт.
 - `.github/workflows/quality-gates.yml` — CI-гейт (устанавливает Chromium и запускает `mise run check`: контракт, бэкенд, фронтенд и E2E).
@@ -102,7 +102,7 @@ chore: apply spotless formatting
 - `/actuator/health` должен оставаться в состоянии `UP`; `ActuatorHealthTest` — smoke-тест для этого.
 - Фронтенд: компонентные тесты — Vitest + Testing Library в `jsdom` (`FE/src/**/*.test.tsx`, конфиг в `FE/vite.config.ts`, setup — `FE/src/test/setup.ts`). Они входят в `npm run test` вместе со сборкой и HTTP-смоуком `FE/scripts/smoke.mjs`, который поднимает `vite preview` на свободном порту и требует 200 для `/` и бандлов.
 - E2E: Playwright в Chromium (`FE/e2e/*.spec.ts`) на настоящих серверах — Spring Boot с хранилищем в памяти и собранный фронтенд. Один счастливый путь: владелец создаёт тип встречи, гость бронирует первый доступный слот из интерфейса, владелец видит встречу в предстоящих. Часы настоящие, дата не фиксируется; ошибки, конфликт и границы времени остаются на швах HTTP и компонентных тестов. Входит в `mise run check` после фронтенда.
-- Тестам не нужна внешняя инфраструктура, поэтому `mise run check` — достаточный шаг проверки.
+- Бэкенд-тестам и компонентным тестам внешняя инфраструктура не нужна, но E2E поднимает настоящий Spring Boot и Chromium. Поэтому `mise run check` — достаточный шаг проверки: он прогоняет контракт, бэкенд, фронтенд и E2E, а отдельная инфраструктура нужна только для установки Chromium (`mise run e2e-install`).
 
 ## Agent skills
 

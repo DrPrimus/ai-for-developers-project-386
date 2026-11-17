@@ -5,16 +5,16 @@ import ru.hexlet._6.domain.MeetingType;
 /** Краткие данные типа встречи внутри встречи. */
 public record MeetingTypeSummaryResponse(String id, String name, int durationMinutes) {
 
-  /** Сводка по типу встречи: длительность берётся из актуального типа. */
-  public static MeetingTypeSummaryResponse from(MeetingType meetingType) {
-    return of(meetingType.id().toString(), meetingType.name(), meetingType.durationMinutes());
-  }
-
   /**
-   * Сводка с длительностью, зафиксированной на момент брони: тип мог бы измениться, а встреча
-   * должна показывать свою длительность.
+   * Сводка типа встречи. Длительность передаётся явно: во встрече она зафиксирована на момент
+   * брони, поэтому не обязана совпадать с текущей длительностью типа.
    */
   public static MeetingTypeSummaryResponse of(String id, String name, int durationMinutes) {
     return new MeetingTypeSummaryResponse(id, name, durationMinutes);
+  }
+
+  /** Сводка по актуальному типу встречи. */
+  public static MeetingTypeSummaryResponse of(MeetingType meetingType) {
+    return of(meetingType.id().toString(), meetingType.name(), meetingType.durationMinutes());
   }
 }

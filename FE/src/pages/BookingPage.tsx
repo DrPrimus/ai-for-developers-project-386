@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 
 import {
   ApiError,
@@ -10,6 +10,7 @@ import {
   type Slot,
   type SlotListResponse,
 } from '@/api/client'
+import { LoadStateNotice, type LoadState } from '@/components/LoadStateNotice'
 import { MeetingTypePicker } from '@/components/booking/MeetingTypePicker'
 import { SlotCalendar } from '@/components/booking/SlotCalendar'
 import { Button } from '@/components/ui/button'
@@ -27,27 +28,39 @@ import {
   formatTimeRange,
 } from '@/lib/datetime'
 
-type LoadState = 'loading' | 'ready' | 'error'
-
 type TypesState = { state: LoadState; items: MeetingType[] }
-type SlotsState = { state: 'idle' | LoadState; data: SlotListResponse | null }
+
+type SlotsState = {
+  state: 'idle' | LoadState
+  data: SlotListResponse | null
+  /** Обновление в фоне: календарь остаётся на экране, чтобы не терять фокус. */
+  refreshing: boolean
+}
+
+/** Альтернативы занятого слота: день и свободные слоты, пришедшие в `409`. */
+type SlotAlternatives = { date: string; slots: Slot[] }
 
 /** Состояние бронирования: одна попытка за раз, после ответа — уведомление. */
 type BookingState =
   | { state: 'idle' }
-  | { state: 'submitting' }
+  | { state: 'submitting'; alternative: SlotAlternatives | null }
   | { state: 'success'; meeting: Meeting }
-  | { state: 'conflict'; date: string; slots: Slot[] }
+  | { state: 'conflict'; conflict: SlotAlternatives }
   | { state: 'error' }
 
 export function BookingPage() {
   const [types, setTypes] = useState<TypesState>({ state: 'loading', items: [] })
   const [typesReload, setTypesReload] = useState(0)
   const [selected, setSelected] = useState<MeetingType | null>(null)
-  const [slots, setSlots] = useState<SlotsState>({ state: 'idle', data: null })
+  const [slots, setSlots] = useState<SlotsState>({
+    state: 'idle',
+    data: null,
+    refreshing: false,
+  })
   const [slotsReload, setSlotsReload] = useState(0)
   const [timeZone, setTimeZone] = useState<string | null>(null)
   const [booking, setBooking] = useState<BookingState>({ state: 'idle' })
+  const notificationRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     let active = true
@@ -70,15 +83,24 @@ export function BookingPage() {
       .then((data) => {
         if (!active) return
         setTimeZone(data.timeZone)
-        setSlots({ state: 'ready', data })
+        setSlots({ state: 'ready', data, refreshing: false })
       })
       .catch(() => {
-        if (active) setSlots({ state: 'error', data: null })
+        if (active) setSlots({ state: 'error', data: null, refreshing: false })
       })
     return () => {
       active = false
     }
   }, [selected, slotsReload])
+
+  /** Уведомление после ответа сервера получает фокус: бронь не должна сбрасывать его на body. */
+  useEffect(() => {
+    const notificationVisible =
+      booking.state === 'success' ||
+      booking.state === 'conflict' ||
+      (booking.state === 'submitting' && booking.alternative !== null)
+    if (notificationVisible) notificationRef.current?.focus()
+  }, [booking])
 
   function retryTypes() {
     setTypes({ state: 'loading', items: [] })
@@ -88,23 +110,26 @@ export function BookingPage() {
   function selectType(meetingType: MeetingType) {
     setSelected(meetingType)
     setBooking({ state: 'idle' })
-    setSlots({ state: 'loading', data: null })
+    setSlots({ state: 'loading', data: null, refreshing: false })
   }
 
   function retrySlots() {
-    setSlots({ state: 'loading', data: null })
+    setSlots({ state: 'loading', data: null, refreshing: false })
     setSlotsReload((token) => token + 1)
   }
 
   function backToTypes() {
     setSelected(null)
     setBooking({ state: 'idle' })
-    setSlots({ state: 'idle', data: null })
+    setSlots({ state: 'idle', data: null, refreshing: false })
   }
 
-  /** Перезапрашивает календарь: после брони или конфликта слоты на экране устарели. */
+  /**
+   * Перезапрашивает календарь в фоне: после брони или пересечения слоты устарели, но календарь
+   * остаётся смонтированным, иначе фокус и прокрутка теряются.
+   */
   function refreshSlots() {
-    setSlots({ state: 'loading', data: null })
+    setSlots((current) => ({ ...current, refreshing: true }))
     setSlotsReload((token) => token + 1)
   }
 
@@ -112,7 +137,10 @@ export function BookingPage() {
   function bookSlot(slot: Slot) {
     if (!selected || booking.state === 'submitting') return
 
-    setBooking({ state: 'submitting' })
+    setBooking({
+      state: 'submitting',
+      alternative: booking.state === 'conflict' ? booking.conflict : null,
+    })
     createMeeting({ meetingTypeId: selected.id, startsAt: slot.startsAt })
       .then((meeting) => {
         setBooking({ state: 'success', meeting })
@@ -122,8 +150,10 @@ export function BookingPage() {
         if (error instanceof ApiError && error.status === 409) {
           setBooking({
             state: 'conflict',
-            date: error.date ?? slot.startsAt.slice(0, 10),
-            slots: error.slots,
+            conflict: {
+              date: error.date ?? slot.startsAt.slice(0, 10),
+              slots: error.slots,
+            },
           })
           refreshSlots()
         } else {
@@ -133,6 +163,14 @@ export function BookingPage() {
   }
 
   const submitting = booking.state === 'submitting'
+  const conflict =
+    booking.state === 'conflict'
+      ? booking.conflict
+      : booking.state === 'submitting'
+        ? booking.alternative
+        : null
+  const calendarVisible =
+    slots.data !== null && (slots.state === 'ready' || slots.refreshing)
 
   return (
     <main className="mx-auto flex w-full max-w-3xl flex-1 flex-col gap-8 px-6 py-16">
@@ -183,8 +221,10 @@ export function BookingPage() {
 
               {booking.state === 'success' && timeZone && (
                 <div
+                  ref={notificationRef}
                   role="status"
-                  className="flex flex-col items-start gap-3 rounded-xl border bg-accent/40 p-4"
+                  tabIndex={-1}
+                  className="flex flex-col items-start gap-3 rounded-xl border bg-accent/40 p-4 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
                 >
                   <p className="text-sm">
                     Встреча забронирована: {booking.meeting.meetingType.name},{' '}
@@ -202,28 +242,31 @@ export function BookingPage() {
                 </div>
               )}
 
-              {booking.state === 'conflict' && timeZone && (
+              {conflict && timeZone && (
                 <div
+                  ref={notificationRef}
                   role="alert"
-                  className="flex flex-col items-start gap-3 rounded-xl border border-destructive/40 bg-destructive/5 p-4"
+                  tabIndex={-1}
+                  className="flex flex-col items-start gap-3 rounded-xl border border-destructive/40 bg-destructive/5 p-4 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
                 >
                   <p className="text-sm">
                     Слот только что заняли. Выберите другое время на{' '}
-                    {formatDayWithYear(booking.date)}.
+                    {formatDayWithYear(conflict.date)}.
                   </p>
-                  {booking.slots.length === 0 ? (
+                  {conflict.slots.length === 0 ? (
                     <p className="text-sm text-muted-foreground">
                       На этот день свободных слотов не осталось.
                     </p>
                   ) : (
                     <div className="flex flex-wrap gap-2">
-                      {booking.slots.map((slot) => (
+                      {conflict.slots.map((slot) => (
                         <Button
                           key={slot.startsAt}
                           type="button"
                           variant="outline"
+                          disabled={submitting}
                           aria-label={formatSlotLabel(
-                            booking.date,
+                            conflict.date,
                             slot.startsAt,
                             slot.endsAt,
                             timeZone,
@@ -249,22 +292,20 @@ export function BookingPage() {
                 </div>
               )}
 
-              {slots.state === 'loading' && (
-                <p className="text-sm text-muted-foreground">Загружаем слоты…</p>
+              {slots.state !== 'idle' && (
+                <LoadStateNotice
+                  state={slots.state}
+                  loadingText="Загружаем слоты…"
+                  errorText="Не удалось загрузить слоты."
+                  onRetry={retrySlots}
+                />
               )}
 
-              {slots.state === 'error' && (
-                <div role="alert" className="flex flex-col items-start gap-2">
-                  <p className="text-sm text-destructive">
-                    Не удалось загрузить слоты.
-                  </p>
-                  <Button type="button" variant="outline" onClick={retrySlots}>
-                    Повторить
-                  </Button>
-                </div>
+              {slots.refreshing && (
+                <p className="text-sm text-muted-foreground">Обновляем слоты…</p>
               )}
 
-              {slots.state === 'ready' && slots.data && (
+              {calendarVisible && slots.data && (
                 <SlotCalendar
                   data={slots.data}
                   onSelectSlot={bookSlot}

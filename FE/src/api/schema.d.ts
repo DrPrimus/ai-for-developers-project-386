@@ -160,17 +160,17 @@ export interface components {
             /** Format: date-time */
             endsAt: string;
         };
-        /** @description Ошибка занятого слота: альтернативы того же дня после конфликта. */
-        SlotConflictResponse: {
-            /** Format: date */
-            date: string;
-            slots: components["schemas"]["Slot"][];
-        } & components["schemas"]["ErrorResponse"];
         SlotListResponse: {
             timeZone: string;
             window: components["schemas"]["BookingWindow"];
             days: components["schemas"]["DaySlots"][];
         };
+        /** @description Ошибка занятого слота: альтернативы того же дня после пересечения. */
+        SlotTakenResponse: {
+            /** Format: date */
+            date: string;
+            slots: components["schemas"]["Slot"][];
+        } & components["schemas"]["ErrorResponse"];
         UpcomingMeetingsResponse: {
             timeZone: string;
             window: components["schemas"]["BookingWindow"];
@@ -319,7 +319,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["SlotConflictResponse"];
+                    "application/json": components["schemas"]["SlotTakenResponse"];
                 };
             };
         };

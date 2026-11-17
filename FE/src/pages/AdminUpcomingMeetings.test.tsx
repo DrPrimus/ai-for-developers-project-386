@@ -11,6 +11,7 @@ import {
 } from '@/api/client'
 import { AppRoutes } from '@/App'
 import { formatInstantDay } from '@/lib/datetime'
+import { CONSULTATION } from '@/test/fixtures'
 
 vi.mock('@/api/client', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@/api/client')>()
@@ -26,13 +27,6 @@ const listTypesMock = vi.mocked(listMeetingTypes)
 const upcomingMock = vi.mocked(listUpcomingMeetings)
 
 const TIME_ZONE = 'Europe/Moscow'
-
-const CONSULTATION = {
-  id: '11111111-1111-1111-1111-111111111111',
-  name: 'Консультация',
-  description: 'Разбор задачи',
-  durationMinutes: 30,
-}
 
 function meeting(id: string, startsAt: string, endsAt: string, name = 'Консультация', durationMinutes = 30): Meeting {
   return {

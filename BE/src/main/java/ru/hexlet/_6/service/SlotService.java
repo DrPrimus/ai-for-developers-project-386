@@ -41,14 +41,14 @@ public class SlotService {
   public SlotListResponse slotsFor(MeetingType meetingType) {
     Instant now = clock.instant();
     LocalDate today = LocalDate.ofInstant(now, CalendarRules.TIME_ZONE);
-    LocalDate lastDay = today.plusDays(CalendarRules.BOOKING_WINDOW_DAYS - 1L);
+    LocalDate lastDay = CalendarRules.windowLastDay(today);
     List<Meeting> meetings = store.meetings();
 
     List<DaySlotsResponse> days = new ArrayList<>();
     for (LocalDate date = today; !date.isAfter(lastDay); date = date.plusDays(1)) {
       days.add(
           new DaySlotsResponse(
-              date, slotsOfDay(date, meetingType.durationMinutes(), meetings, now)));
+              date, buildDaySlots(date, meetingType.durationMinutes(), meetings, now)));
     }
 
     return new SlotListResponse(
@@ -57,23 +57,19 @@ public class SlotService {
         List.copyOf(days));
   }
 
-  /** Свободные слоты одного дня окна; для дня вне окна или выходного — пустой список. */
+  /** Свободные слоты одного дня; выходной даёт пустой список. */
   public List<SlotResponse> slotsForDay(MeetingType meetingType, LocalDate date) {
-    return slotsOfDay(date, meetingType.durationMinutes(), store.meetings(), clock.instant());
+    return buildDaySlots(date, meetingType.durationMinutes(), store.meetings(), clock.instant());
   }
 
-  private static List<SlotResponse> slotsOfDay(
+  private static List<SlotResponse> buildDaySlots(
       LocalDate date, int durationMinutes, List<Meeting> meetings, Instant now) {
-    if (!CalendarRules.WORK_DAYS.contains(date.getDayOfWeek())) {
+    if (!CalendarRules.isWorkDay(date)) {
       return List.of();
     }
 
-    OffsetDateTime workStart =
-        date.atTime(CalendarRules.WORK_DAY_START)
-            .atZone(CalendarRules.TIME_ZONE)
-            .toOffsetDateTime();
-    OffsetDateTime workEnd =
-        date.atTime(CalendarRules.WORK_DAY_END).atZone(CalendarRules.TIME_ZONE).toOffsetDateTime();
+    OffsetDateTime workStart = CalendarRules.workDayStart(date);
+    OffsetDateTime workEnd = CalendarRules.workDayEnd(date);
 
     List<Meeting> meetingsOfDay =
         meetings.stream()

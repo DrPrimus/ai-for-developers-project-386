@@ -86,12 +86,15 @@ class MeetingApiTest {
   }
 
   @Test
-  void malformedMeetingTypeIdIsRejectedAsUnknownType() throws Exception {
+  void malformedMeetingTypeIdIsReportedAsValidationError() throws Exception {
     MvcResult result = book("not-a-uuid", WEDNESDAY + "T09:00:00+03:00");
 
-    assertThat(result.getResponse().getStatus()).isEqualTo(404);
-    assertThat((String) JsonPath.read(result.getResponse().getContentAsString(), "$.code"))
-        .isEqualTo("MEETING_TYPE_NOT_FOUND");
+    assertThat(result.getResponse().getStatus()).isEqualTo(400);
+    String body = result.getResponse().getContentAsString();
+    assertThat((String) JsonPath.read(body, "$.code")).isEqualTo("VALIDATION_FAILED");
+    List<String> fields = JsonPath.read(body, "$.fieldErrors[*].field");
+    assertThat(fields).containsExactly("meetingTypeId");
+    assertThat(store.meetings()).isEmpty();
   }
 
   @Test
@@ -136,7 +139,8 @@ class MeetingApiTest {
                     """
                         .formatted(typeId)))
         .andExpect(status().isBadRequest())
-        .andExpect(jsonPath("$.code").value("VALIDATION_FAILED"));
+        .andExpect(jsonPath("$.code").value("VALIDATION_FAILED"))
+        .andExpect(jsonPath("$.fieldErrors[*].field", hasItem("startsAt")));
   }
 
   @ParameterizedTest

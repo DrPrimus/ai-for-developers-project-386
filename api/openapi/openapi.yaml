@@ -108,7 +108,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/SlotConflictResponse'
+                $ref: '#/components/schemas/SlotTakenResponse'
       tags:
         - Meetings
       requestBody:
@@ -306,22 +306,6 @@ components:
           type: string
           format: date-time
       description: 'Свободный слот: полуинтервал [startsAt, endsAt).'
-    SlotConflictResponse:
-      type: object
-      required:
-        - date
-        - slots
-      properties:
-        date:
-          type: string
-          format: date
-        slots:
-          type: array
-          items:
-            $ref: '#/components/schemas/Slot'
-      allOf:
-        - $ref: '#/components/schemas/ErrorResponse'
-      description: 'Ошибка занятого слота: альтернативы того же дня после конфликта.'
     SlotListResponse:
       type: object
       required:
@@ -337,6 +321,22 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/DaySlots'
+    SlotTakenResponse:
+      type: object
+      required:
+        - date
+        - slots
+      properties:
+        date:
+          type: string
+          format: date
+        slots:
+          type: array
+          items:
+            $ref: '#/components/schemas/Slot'
+      allOf:
+        - $ref: '#/components/schemas/ErrorResponse'
+      description: 'Ошибка занятого слота: альтернативы того же дня после пересечения.'
     UpcomingMeetingsResponse:
       type: object
       required:

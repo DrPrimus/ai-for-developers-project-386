@@ -1,7 +1,9 @@
 package ru.hexlet._6.domain;
 
 import java.time.DayOfWeek;
+import java.time.LocalDate;
 import java.time.LocalTime;
+import java.time.OffsetDateTime;
 import java.time.ZoneId;
 import java.util.List;
 
@@ -39,4 +41,29 @@ public final class CalendarRules {
   public static final int DURATION_STEP_MINUTES = 5;
 
   private CalendarRules() {}
+
+  /** Последний день окна бронирования: сегодня плюс 13 календарных дней. */
+  public static LocalDate windowLastDay(LocalDate today) {
+    return today.plusDays(BOOKING_WINDOW_DAYS - 1L);
+  }
+
+  /** Дата входит в окно бронирования, включая обе границы. */
+  public static boolean isWithinWindow(LocalDate date, LocalDate today) {
+    return !date.isBefore(today) && !date.isAfter(windowLastDay(today));
+  }
+
+  /** Рабочий день недели: понедельник–пятница. */
+  public static boolean isWorkDay(LocalDate date) {
+    return WORK_DAYS.contains(date.getDayOfWeek());
+  }
+
+  /** Начало рабочих часов дня в часовом поясе сервиса. */
+  public static OffsetDateTime workDayStart(LocalDate date) {
+    return date.atTime(WORK_DAY_START).atZone(TIME_ZONE).toOffsetDateTime();
+  }
+
+  /** Конец рабочих часов дня (не включается) в часовом поясе сервиса. */
+  public static OffsetDateTime workDayEnd(LocalDate date) {
+    return date.atTime(WORK_DAY_END).atZone(TIME_ZONE).toOffsetDateTime();
+  }
 }

@@ -14,7 +14,7 @@ public record MeetingResponse(
 
   /** Встреча с типом, длительность которого берётся из типа. */
   public static MeetingResponse from(Meeting meeting, MeetingType meetingType) {
-    return from(meeting, MeetingTypeSummaryResponse.from(meetingType));
+    return from(meeting, MeetingTypeSummaryResponse.of(meetingType));
   }
 
   /** Встреча с готовой сводкой типа: длительность может быть снимком на момент брони. */

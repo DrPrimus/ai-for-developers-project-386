@@ -5,6 +5,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { createMeetingType, listMeetingTypes, ApiError, listUpcomingMeetings } from '@/api/client'
 import { AppRoutes } from '@/App'
+import { CONSULTATION } from '@/test/fixtures'
 
 vi.mock('@/api/client', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@/api/client')>()
@@ -19,13 +20,6 @@ vi.mock('@/api/client', async (importOriginal) => {
 const listMock = vi.mocked(listMeetingTypes)
 const createMock = vi.mocked(createMeetingType)
 const upcomingMock = vi.mocked(listUpcomingMeetings)
-
-const CONSULTATION = {
-  id: '11111111-1111-1111-1111-111111111111',
-  name: 'Консультация',
-  description: 'Разбор задачи',
-  durationMinutes: 30,
-}
 
 function renderAdmin() {
   return render(

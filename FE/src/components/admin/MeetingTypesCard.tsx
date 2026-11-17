@@ -1,6 +1,7 @@
 import { useEffect, useState, type FormEvent } from 'react'
 
 import { ApiError, createMeetingType, listMeetingTypes, type MeetingType } from '@/api/client'
+import { LoadStateNotice, type LoadState } from '@/components/LoadStateNotice'
 import { Button } from '@/components/ui/button'
 import {
   Card,
@@ -12,8 +13,6 @@ import {
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
-
-type LoadState = 'loading' | 'ready' | 'error'
 
 const EMPTY_FORM = { name: '', description: '', duration: '' }
 
@@ -38,15 +37,7 @@ export function MeetingTypesCard() {
   const [submitting, setSubmitting] = useState(false)
   const [reloadToken, setReloadToken] = useState(0)
 
-  async function refresh() {
-    try {
-      setItems(await listMeetingTypes())
-      setLoadState('ready')
-    } catch {
-      setLoadState('error')
-    }
-  }
-
+  /** Единственный загрузчик списка: и первый показ, и обновление после создания. */
   useEffect(() => {
     let active = true
     listMeetingTypes()
@@ -83,7 +74,7 @@ export function MeetingTypesCard() {
       })
       setForm(EMPTY_FORM)
       setCreated(true)
-      await refresh()
+      setReloadToken((token) => token + 1)
     } catch (error) {
       const errors = fieldErrorsToMap(error)
       setFieldErrors(errors)
@@ -217,26 +208,15 @@ export function MeetingTypesCard() {
             Созданные типы встреч
           </h3>
 
-          {loadState === 'loading' && (
-            <p className="text-sm text-muted-foreground">Загружаем типы встреч…</p>
-          )}
-
-          {loadState === 'error' && (
-            <div role="alert" className="flex flex-col items-start gap-2">
-              <p className="text-sm text-destructive">
-                Не удалось загрузить типы встреч.
-              </p>
-              <Button type="button" variant="outline" onClick={retry}>
-                Повторить
-              </Button>
-            </div>
-          )}
-
-          {loadState === 'ready' && items.length === 0 && (
-            <p className="text-sm text-muted-foreground">Пока нет типов встреч.</p>
-          )}
-
-          {loadState === 'ready' && items.length > 0 && (
+          {loadState !== 'ready' || items.length === 0 ? (
+            <LoadStateNotice
+              state={loadState}
+              loadingText="Загружаем типы встреч…"
+              errorText="Не удалось загрузить типы встреч."
+              emptyText="Пока нет типов встреч."
+              onRetry={retry}
+            />
+          ) : (
             <ul aria-label="Типы встреч" className="flex flex-col gap-2">
               {items.map((item) => (
                 <li

@@ -5,6 +5,7 @@ import {
   type Meeting,
   type UpcomingMeetingsResponse,
 } from '@/api/client'
+import { LoadStateNotice, type LoadState } from '@/components/LoadStateNotice'
 import { Button } from '@/components/ui/button'
 import {
   Card,
@@ -18,8 +19,6 @@ import {
   formatTimeRange,
   instantDateKey,
 } from '@/lib/datetime'
-
-type LoadState = 'loading' | 'ready' | 'error'
 
 /** Пока вкладка видима, список перезапрашивается с этим шагом. */
 const POLL_INTERVAL_MS = 10_000
@@ -113,31 +112,17 @@ export function UpcomingMeetingsCard() {
           Обновить
         </Button>
 
-        {loadState === 'loading' && (
-          <p className="text-sm text-muted-foreground">
-            Загружаем предстоящие встречи…
-          </p>
-        )}
-
-        {loadState === 'error' && (
-          <div role="alert" className="flex flex-col items-start gap-2">
-            <p className="text-sm text-destructive">
-              Не удалось загрузить предстоящие встречи.
-            </p>
-            <Button type="button" variant="outline" onClick={refresh}>
-              Повторить
-            </Button>
-          </div>
-        )}
-
-        {loadState === 'ready' && groups.length === 0 && (
-          <p className="text-sm text-muted-foreground">
-            Пока нет предстоящих встреч.
-          </p>
-        )}
-
-        {loadState === 'ready' && data && groups.length > 0 && (
-          <div className="flex flex-col gap-6">
+        {loadState !== 'ready' || groups.length === 0 ? (
+          <LoadStateNotice
+            state={loadState}
+            loadingText="Загружаем предстоящие встречи…"
+            errorText="Не удалось загрузить предстоящие встречи."
+            emptyText="Пока нет предстоящих встреч."
+            onRetry={refresh}
+          />
+        ) : (
+          data && (
+            <div className="flex flex-col gap-6">
             {groups.map((group) => (
               <section
                 key={group.key}
@@ -169,7 +154,8 @@ export function UpcomingMeetingsCard() {
                 </ul>
               </section>
             ))}
-          </div>
+            </div>
+          )
         )}
       </CardContent>
     </Card>
