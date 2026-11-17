@@ -7,6 +7,10 @@
         "url": "https://mcp.render.com/mcp",
         "oauth": false,
         "headers": { "Authorization": "Bearer {env:RENDER_API_KEY}" }
+      },
+      "railway": {
+        "type": "local",
+        "command": ["railway", "mcp", "local"]
       }
     }
   }
