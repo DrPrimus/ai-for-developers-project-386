@@ -35,7 +35,7 @@ COPY --from=eclipse-temurin:25-jre-alpine /opt/java/openjdk /opt/java/openjdk
 ENV JAVA_HOME=/opt/java/openjdk \
     PATH=/opt/java/openjdk/bin:$PATH
 
-# Hexlet runs the container with only `PORT=8080`; Render provides PORT too.
+# Hexlet runs the container with only `PORT=8080`; Railway provides PORT too.
 # Spring Boot listens on an internal loopback port so the public port stays free
 # for nginx. BACKEND_PORT is the single source of truth: docker/entrypoint.sh
 # derives SERVER_PORT/SERVER_ADDRESS from it.
@@ -58,7 +58,7 @@ RUN chmod +x /usr/local/bin/entrypoint.sh
 EXPOSE 10000
 
 # nginx:alpine sets SIGQUIT; the entrypoint coordinates a TERM shutdown of both
-# processes, which is what Render and Docker send by default.
+# processes, which is what Railway and Docker send by default.
 STOPSIGNAL SIGTERM
 
 ENTRYPOINT ["/sbin/tini", "--", "/usr/local/bin/entrypoint.sh"]

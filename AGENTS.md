@@ -12,9 +12,9 @@
 - `FE/e2e/` — сквозной браузерный сценарий на Playwright (`FE/playwright.config.ts` поднимает настоящий Spring Boot и собранный фронтенд).
 - `api/` — контракт HTTP API на TypeSpec (Design First). Источник истины — `api/main.tsp`. Из него генерируются `api/openapi/openapi.yaml` и типы фронтенда `FE/src/api/schema.d.ts`; оба артефакта коммитятся и не редактируются руками. Бэкенд и фронтенд пишутся под этот контракт.
 - `Dockerfile`, `docker/` — один production-образ: multi-stage сборка фронтенда и Spring Boot jar, в runtime nginx отдаёт SPA и проксирует `/api/` и `/actuator/` в JVM на loopback-порту `BACKEND_PORT` (по умолчанию `8081`). `docker/entrypoint.sh` запускает оба процесса и координирует завершение по SIGTERM, шаблон nginx лежит в `docker/nginx/default.conf.template`.
-- `render.yaml` — Blueprint Render: сборка из корневого `Dockerfile`, health check `/actuator/health`.
+- Railway — публичный деплой: проект `ai-for-developers-project-386`, сервис `web`, сборка из `main` по корневому `Dockerfile`, health check `/actuator/health`, домен `https://web-production-347f5551.up.railway.app`. Это Free Trial на 30 дней / $5 кредита, поэтому ссылка не вечная.
 - `scripts/docker-check.mjs` — сборка образа и два запуска контейнера (нестандартный порт и `PORT=8080`): health через nginx, SPA, deep link, API и graceful shutdown.
-- `opencode.json`, `.env.example` — конфигурация Render MCP для OpenCode и памятка по `RENDER_API_KEY` (ключ не коммитится).
+- `opencode.json` — local MCP-сервер Railway для OpenCode (`railway mcp local`); токенов и ключей в файле нет, используется CLI-сессия `railway login`.
 - `.github/workflows/quality-gates.yml` — CI-гейт: job `check` устанавливает Chromium и запускает `mise run check` (контракт, бэкенд, фронтенд и E2E), а отдельный job `docker` запускает `mise run docker-check`.
 - `.github/workflows/hexlet-check.yml` — автогенерируемая проверка Хекслета. Не редактируйте, не удаляйте и не переименовывайте её; не переименовывайте репозиторий.
 
@@ -48,12 +48,13 @@ E2E:
 - `mise run api-generate` — пересобрать `api/openapi/openapi.yaml` и `FE/src/api/schema.d.ts` из TypeSpec
 - `mise run api-check` — проверить компиляцию TypeSpec и актуальность сгенерированных артефактов
 - `mise run check` — полная проверка проекта через `scripts/check.mjs`: контракт API, бэкенд, фронтенд и E2E запускаются последовательно, каждый в своём блоке; после каждой части печатается сводка, в конце — общая таблица по тестам. Цифры читаются из консольного вывода Maven, Vitest и Playwright, файлы отчётов не создаются. Docker в этот шаг не входит — он запускается отдельным CI-job
-- `hk install --mise` — один раз после клона: включает git-хук `pre-commit` из `hk.pkl`, который запускает `mise run check` (контракт API, бэкенд, фронтенд и E2E) на изменённые `api/**`, `BE/**`, `FE/**`, `docker/**`, `scripts/**`, `Dockerfile`, `render.yaml`, `opencode.json`, `.dockerignore`, `.env.example`, `mise.toml`, `hk.pkl`. Сами хуки живут в `.git/` и в репозиторий не попадают, поэтому на каждой новой машине команду нужно повторить.
+- `hk install --mise` — один раз после клона: включает git-хук `pre-commit` из `hk.pkl`, который запускает `mise run check` (контракт API, бэкенд, фронтенд и E2E) на изменённые `api/**`, `BE/**`, `FE/**`, `docker/**`, `scripts/**`, `Dockerfile`, `opencode.json`, `.dockerignore`, `mise.toml`, `hk.pkl`. Сами хуки живут в `.git/` и в репозиторий не попадают, поэтому на каждой новой машине команду нужно повторить.
 
 Деплой и контейнер:
 
 - `mise run docker-check` — собрать production-образ и запустить его на нестандартном порту и на `PORT=8080`; проверяет health через nginx, SPA, deep link, API и остановку по SIGTERM. Входит в отдельный job `docker` в CI, но не в `mise run check`
-- `PUBLIC_URL=https://<service>.onrender.com mise run verify-public` — проверить уже развёрнутый сервис: сценарий владельца и гостя в Chromium, затем повторная бронь через API с ожиданием `409` и альтернатив. Задача сама ставит зависимости и Chromium (`fe-install` + `e2e-install`), отдельных ручных установок не требуется
+- `PUBLIC_URL=https://<public-url> mise run verify-public` — проверить уже развёрнутый сервис: сценарий владельца и гостя в Chromium, затем повторная бронь через API с ожиданием `409` и альтернатив. Задача сама ставит зависимости и Chromium (`fe-install` + `e2e-install`), отдельных ручных установок не требуется
+- `railway login` + `railway mcp install --agent opencode --local` — подключить local Railway MCP к OpenCode (использует CLI-сессию, токенов в конфиге нет). Деплой идёт из `main` по `Dockerfile`; health check — `/actuator/health`
 
 ## Подводный камень с форматированием
 

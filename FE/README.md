@@ -112,7 +112,7 @@ mise run e2e           # сборка + npx playwright test
 локальных серверов. Базовый адрес обязателен и берётся из `PUBLIC_URL`:
 
 ```bash
-PUBLIC_URL=https://<service>.onrender.com mise run verify-public
+PUBLIC_URL=https://<public-url> mise run verify-public
 # без mise: PUBLIC_URL=... node FE/scripts/verify-public.mjs
 # или из FE/: PUBLIC_URL=... npm run verify:public
 ```
@@ -125,7 +125,7 @@ PUBLIC_URL=https://<service>.onrender.com mise run verify-public
 `meetingTypeId` и `startsAt` повторяет бронь напрямую через
 `POST /api/meetings` и требует `409` с непустым списком `slots`. При успехе
 печатает `PASS`, при ошибке — `FAIL` и завершается с ненулевым кодом. Таймауты
-рассчитаны на холодный старт free-инстанса Render (~минута).
+рассчитаны на холодный старт развёрнутого инстанса (~минута).
 
 ## Добавление компонентов shadcn/ui
 

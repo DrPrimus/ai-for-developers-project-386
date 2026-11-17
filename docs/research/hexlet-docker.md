@@ -2,7 +2,7 @@
 
 Статус: research, не решение. Отвечает на вопросы тикета #22: из какого каталога автопроверка Хекслета собирает образ, какой командой запускает контейнер, как передаёт `PORT`, что считает успешным стартом и есть ли требования к базовому образу, непривилегированному пользователю и `docker-compose`.
 
-Дата доступа ко всем источникам: **2026-11-17**. Проверялись первичные источники: исходники `Hexlet/project-action` (ветки `master` и `release`), публичный образ проверки этого проекта на Docker Hub (файлы внутри образа: `README.md`, `__data__/checklist.md`, `__data__/review-checklist.md`, `__data__/steps/60-deploy.md`, `docker-compose.yml`, `Makefile`, `__tests__`), справочная статья Хекслета об автопроверке и документация Render по привязке порта.
+Дата доступа ко всем источникам: **2026-11-17**. Проверялись первичные источники: исходники `Hexlet/project-action` (ветки `master` и `release`), публичный образ проверки этого проекта на Docker Hub (файлы внутри образа: `README.md`, `__data__/checklist.md`, `__data__/review-checklist.md`, `__data__/steps/60-deploy.md`, `docker-compose.yml`, `Makefile`, `__tests__`), справочная статья Хекслета об автопроверке.
 
 ## TL;DR
 
@@ -12,7 +12,7 @@
 - Успешный старт: healthcheck `curl -fsS http://localhost:8080/` (интервал 2 с, таймаут 1 с, 300 ретраев, `start_period` 10 с — запас около 10 минут), затем Playwright `page.goto("/")` с ожиданием **ровно `200`**. Отдельный health-эндпоинт не нужен и не проверяется.
 - Требований к базовому образу и непривилегированному пользователю **нет**. Ограничение только одно: образ должен собираться и запускаться на Linux **amd64** (раннер `ubuntu-latest`). `EXPOSE` не обязателен.
 - `docker-compose.yml` студента **не используется**: проверка принудительно берёт свой `-f docker-compose.yml` и игнорирует `docker-compose.override.yml`. Свой compose держать можно, на проверку он не влияет.
-- Публичный URL и деплой автопроверка **не проверяет** — это делает наставник по чек-листу. Требования к деплою (Render/Railway, ссылка в README) записаны в шаге `60-deploy.md`, но не в коде проверки.
+- Публичный URL и деплой автопроверка **не проверяет** — это делает наставник по чек-листу. Требования к деплою (Railway, ссылка в README) записаны в шаге `60-deploy.md`, но не в коде проверки.
 - Важное следствие для нашего деплоя: при `PORT=8080` nginx на `$PORT` и Spring Boot на внутреннем `8080` конфликтуют. Внутренний порт Java должен быть не `8080` (например, `8081`), либо nginx слушает `8080`, а Java — другой порт. Это нужно учесть в task-тикете про Dockerfile.
 
 ## 1. Что делает автопроверка: общий механизм
@@ -188,15 +188,15 @@ test("smoke: application opens", async ({ page }) => {
 - **Dockerfile обязателен и лежит в корне.** Сейчас его в репозитории нет — автопроверка упадёт на сборке с `open Dockerfile: no such file or directory`.
 - **Контекст сборки — корень**, поэтому multi-stage образ может копировать `BE/`, `FE/`, `api/`; `.dockerignore` обязателен, иначе в контекст попадут `.git`, `FE/node_modules`, `BE/target`, `FE/dist` и т.п.
 - **Образ должен запускать оба процесса сам** (Java + nginx) без внешних env, кроме `PORT`. Spring Boot не должен требовать `BASE_URL`, БД или профилей.
-- **Порт.** Проверка даёт `PORT=8080`; Render даёт свой `PORT` (по умолчанию `10000`) и требует `0.0.0.0`. Практично: nginx слушает `${PORT:-8080}`, Spring Boot — отдельный внутренний порт.
+- **Порт.** Проверка даёт `PORT=8080`; облачная платформа передаёт свой `PORT` и требует `0.0.0.0`. Практично: nginx слушает `$PORT`, Spring Boot — отдельный внутренний порт.
 - **Конфликт портов при `PORT=8080`.** Решение карты «nginx на `$PORT`, Spring Boot на фиксированном `8080`» при проверке даёт коллизию: оба процесса захотят `8080`. Внутренний порт Java нужно сделать отличным от `8080` (например, `8081`, `server.address=127.0.0.1`) или наоборот — nginx на `8080`, Java на другом. Это правка в task-тикете про Dockerfile, карту не меняет.
 - **`/` должен отвечать `200`** и отдавать реальное приложение (главную страницу). Редирект `/` → `/admin` допустим только если итоговый ответ `200`; healthcheck `curl -f` не следует редиректам, но принимает `3xx`, а Playwright идёт по редиректу.
-- **Health-эндпоинт.** `HEALTHCHECK` в Dockerfile не нужен — харнесс проверяет сам. Для Render `healthCheckPath` (`/actuator/health`) — отдельная история (см. `docs/research/render-mcp.md`).
+- **Health-эндпоинт.** `HEALTHCHECK` в Dockerfile не нужен — харнесс проверяет сам. Для облачного деплоя health check указывается в настройках платформы.
 - **Холодный старт ≤ ~10 минут.** Сборку (Maven/npm) лучше делать на этапе `docker build`, а не при старте контейнера.
 - **Архитектура.** Локальная сборка на Apple Silicon должна проверяться под `linux/amd64` (`docker build --platform linux/amd64`), иначе расхождение с раннером.
 - **Непривилегированный пользователь и базовый образ** — на наш выбор; на проверку не влияют. Если добавляем `USER`, убедиться, что entrypoint и nginx могут писать в нужные каталоги.
 - **Свой `docker-compose.yml`** можно держать для локальной разработки, но проверка его игнорирует; полагаться на него в сдаче нельзя.
-- **Деплой.** Публичная ссылка и работающий по ней сценарий — требование шага и ревью, а не автопроверки. Порядок: Render/Railway, `PORT`, ссылка в `README.md`, MCP-конфиг, отсутствие секретов.
+- **Деплой.** Публичная ссылка и работающий по ней сценарий — требование шага и ревью, а не автопроверки. Порядок: Railway, `PORT`, ссылка в `README.md`, MCP-конфиг, отсутствие секретов.
 
 ## 5. Уверенность
 
@@ -207,7 +207,7 @@ test("smoke: application opens", async ({ page }) => {
 - Образ проверки тегается `:latest`; требования могут измениться без изменений в репозитории. Снимок — 2026-11-13.
 - Не проверялось на живом прогоне, включён ли `tests_on` для этого проекта; если выключен, экшен до ревью только пишет предупреждение и не собирает образ.
 - Ручную проверку публичной ссылки и README выполняет наставник; автоматического деплой-чека в экшене нет.
-- Общий гайд Хекслета по деплою (<https://ru.hexlet.io/courses/java-web/lessons/deploy/theory_unit>) подтверждает практику «Dockerfile в корне → Render», но урок доступен только в интерфейсе курса; здесь он использован как вспомогательный источник, а не как основание.
+- Общий гайд Хекслета по деплою (<https://ru.hexlet.io/courses/java-web/lessons/deploy/theory_unit>) подтверждает практику «Dockerfile в корне → облачный деплой», но урок доступен только в интерфейсе курса; здесь он использован как вспомогательный источник, а не как основание.
 
 ## 6. Источники
 
@@ -217,9 +217,9 @@ test("smoke: application opens", async ({ page }) => {
 | <https://hub.docker.com/r/hexletprojects/ai_assisted_development_calendar_slot_project_ru> (`:latest`, digest `sha256:c40cbb38f447275f4c85da4ac7f7e93ccc2743cc6cef394c8565f8914849493b`, образ от 2026-11-13) | `README.md`, `__data__/checklist.md`, `__data__/review-checklist.md`, `__data__/steps/60-deploy.md`, `docker-compose.yml`, `Makefile`, `__tests__/00-smoke.spec.ts`, `playwright.config.ts` | 2026-11-17 |
 | <https://hub.docker.com/r/hexletprojects/ai_assisted_development_calendar_advanced_project_ru> | Второй проект: тот же контракт сборки/запуска/`PORT`/`GET /` | 2026-11-17 |
 | <https://help.hexlet.io/project-work/avtoproverka-proektov> | Автопроверка запускается на шаге ревью; до него — `Tests will run during review step`; где смотреть лог и артефакты | 2026-11-17 |
-| <https://render.com/docs/web-services#port-binding> | `PORT` (дефолт `10000`), обязательная привязка к `0.0.0.0`, зарезервированные порты | 2026-11-17 |
-| <https://ru.hexlet.io/courses/java-web/lessons/deploy/theory_unit> | Гайд Хекслета: Dockerfile в корне, Render собирает образ, `Root Directory` пустой (вспомогательный источник; урок за авторизацией) | 2026-11-17 |
-| <https://github.com/ditransler/ai-for-developers-project-386>, <https://github.com/alexmyt/ai-for-developers-project-386>, <https://github.com/kolchenko/ai-for-developers-project-387> | Публичные студенческие проекты этого курса: корневой Dockerfile, запуск по `PORT`, деплой на Render | 2026-11-17 |
+| <https://docs.railway.com/builds/dockerfiles> | Railway использует корневой `Dockerfile`; `PORT` передаётся в рантайме, приложение слушает `0.0.0.0` | 2026-11-17 |
+| <https://ru.hexlet.io/courses/java-web/lessons/deploy/theory_unit> | Гайд Хекслета: Dockerfile в корне, облачный сервис собирает образ, `Root Directory` пустой (вспомогательный источник; урок за авторизацией) | 2026-11-17 |
+| <https://github.com/ditransler/ai-for-developers-project-386>, <https://github.com/alexmyt/ai-for-developers-project-386>, <https://github.com/kolchenko/ai-for-developers-project-387> | Публичные студенческие проекты этого курса: корневой Dockerfile, запуск по `PORT`, облачный деплой | 2026-11-17 |
 
 ### Как воспроизвести inspect образа
 
