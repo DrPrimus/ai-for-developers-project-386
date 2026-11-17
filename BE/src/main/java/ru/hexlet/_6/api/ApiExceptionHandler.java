@@ -35,6 +35,14 @@ public class ApiExceptionHandler {
         .body(new ErrorResponse("VALIDATION_FAILED", "Тело запроса не разобрано"));
   }
 
+  /** Неизвестный тип встречи: и синтаксически неверный идентификатор тоже. */
+  @ExceptionHandler(MeetingTypeNotFoundException.class)
+  public ResponseEntity<ErrorResponse> handleMeetingTypeNotFound(
+      MeetingTypeNotFoundException exception) {
+    return ResponseEntity.status(HttpStatus.NOT_FOUND)
+        .body(new ErrorResponse("MEETING_TYPE_NOT_FOUND", exception.getMessage()));
+  }
+
   private static FieldErrorResponse toFieldError(FieldError fieldError) {
     return new FieldErrorResponse(fieldError.getField(), fieldError.getDefaultMessage());
   }
