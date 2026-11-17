@@ -10,6 +10,8 @@ export type FieldError = components['schemas']['FieldError']
 export type Meeting = components['schemas']['Meeting']
 export type MeetingRequest = components['schemas']['MeetingRequest']
 export type SlotConflictResponse = components['schemas']['SlotConflictResponse']
+export type UpcomingMeetingsResponse =
+  components['schemas']['UpcomingMeetingsResponse']
 
 type ErrorBody = components['schemas']['ErrorResponse'] & {
   fieldErrors?: FieldError[]
@@ -87,4 +89,9 @@ export function createMeeting(input: MeetingRequest): Promise<Meeting> {
     method: 'POST',
     body: JSON.stringify(input),
   })
+}
+
+/** Предстоящие встречи окна в порядке начала. */
+export function listUpcomingMeetings(): Promise<UpcomingMeetingsResponse> {
+  return request<UpcomingMeetingsResponse>('/meetings/upcoming')
 }
