@@ -4,7 +4,7 @@
 # (tini is PID 1 and forwards the signal to this script).
 set -eu
 
-# Fits the Render free plan (0.1 CPU / 512 MB) together with nginx: a heap
+# Fits a small 512 MB / low-CPU instance together with nginx: a heap
 # capped at 70% of the cgroup limit, SerialGC to keep overhead low, small
 # thread stacks and a fast exit on OOM so the platform can restart the service.
 JAVA_OPTS="${JAVA_OPTS:--XX:MaxRAMPercentage=70 -XX:+UseSerialGC -Xss512k -XX:+ExitOnOutOfMemoryError}"

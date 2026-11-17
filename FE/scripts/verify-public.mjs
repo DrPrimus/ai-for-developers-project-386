@@ -2,14 +2,14 @@
 // и гостя в браузере, затем повторяет бронирование напрямую через API и ждёт 409
 // с альтернативами. Локальные серверы не поднимает — только PUBLIC_URL.
 //
-// Запуск: PUBLIC_URL=https://<service>.onrender.com node FE/scripts/verify-public.mjs
+// Запуск: PUBLIC_URL=https://<public-url> node FE/scripts/verify-public.mjs
 
 import assert from 'node:assert/strict'
 
 import { chromium, request } from '@playwright/test'
 
-// Free-инстанс Render засыпает и поднимается около минуты, плюс loading page
-// перед первым ответом приложения, поэтому таймауты щедрые.
+// Развёрнутый инстанс может подниматься около минуты, плюс loading page перед
+// первым ответом приложения, поэтому таймауты щедрые.
 const NAVIGATION_TIMEOUT_MS = 120_000
 const STEP_TIMEOUT_MS = 120_000
 const OPEN_ATTEMPTS = 3
@@ -26,7 +26,7 @@ function requirePublicUrl() {
   if (!raw) {
     throw new Error(
       'PUBLIC_URL не задан. Укажите базовый адрес развёрнутого сервиса, ' +
-        'например: PUBLIC_URL=https://booking-386.onrender.com node FE/scripts/verify-public.mjs',
+        'например: PUBLIC_URL=https://web-production-347f5551.up.railway.app node FE/scripts/verify-public.mjs',
     )
   }
 
@@ -47,7 +47,7 @@ function requirePublicUrl() {
 
 /**
  * Открывает путь и ждёт готовности приложения. Первый запрос к спящему
- * Render может вернуть loading page вместо SPA, поэтому повторяем переход.
+ * Платформа может вернуть loading page вместо SPA, поэтому повторяем переход.
  */
 async function openPage(page, baseUrl, path, readyLocator, label) {
   let lastError

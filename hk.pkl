@@ -14,10 +14,8 @@ steps {
       "docker/**",
       "scripts/**",
       "Dockerfile",
-      "render.yaml",
       "opencode.json",
       ".dockerignore",
-      ".env.example",
       "mise.toml",
       "hk.pkl",
     )

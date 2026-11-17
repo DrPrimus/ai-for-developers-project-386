@@ -7,7 +7,7 @@ server {
     root /usr/share/nginx/html;
     index index.html;
 
-    # API and actuator both belong to Spring Boot: Render's health check must
+    # API and actuator both belong to Spring Boot: the platform health check must
     # reach the JVM, not the static files, and unknown actuator routes must
     # return Spring's 404 instead of the SPA fallback.
     location ~ ^/(api|actuator)/ {
