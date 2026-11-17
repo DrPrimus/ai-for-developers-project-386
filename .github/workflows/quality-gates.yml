@@ -41,6 +41,11 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-node-modules-
 
-      - name: Run quality gates check (backend + frontend)
+      - name: Install Playwright Chromium
+        run: |
+          mise run fe-install
+          cd FE && npx playwright install --with-deps chromium
+
+      - name: Run quality gates check (contract + backend + frontend + E2E)
         run: |
           mise run check
