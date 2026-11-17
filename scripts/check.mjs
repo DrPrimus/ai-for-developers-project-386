@@ -1,15 +1,17 @@
 // Runs the project quality gates and prints a human-readable summary for each
-// part (API contract / backend / frontend) plus a final total.
+// part (API contract / backend / frontend / E2E) plus a final total.
 //
 // Reports are not written to disk: test counts are parsed from the regular
-// console output of Maven Surefire and Vitest. If the format cannot be parsed,
-// the summary says so, but the exit code still reflects the real result.
+// console output of Maven Surefire, Vitest and Playwright. If the format cannot
+// be parsed, the summary says so, but the exit code still reflects the real
+// result.
 //
 // Usage:
-//   node scripts/check.mjs        # API contract + backend + frontend
+//   node scripts/check.mjs        # API contract + backend + frontend + E2E
 //   node scripts/check.mjs api    # API contract only
 //   node scripts/check.mjs be     # backend only
 //   node scripts/check.mjs fe     # frontend only
+//   node scripts/check.mjs e2e    # browser E2E only
 
 import { spawn } from 'node:child_process'
 import path from 'node:path'
@@ -19,8 +21,10 @@ import { fileURLToPath } from 'node:url'
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
 const mode = process.argv[2] ?? 'all'
 
-if (!['all', 'api', 'be', 'fe'].includes(mode)) {
-  console.error(`Неизвестный режим: ${mode}. Используйте all, api, be или fe.`)
+if (!['all', 'api', 'be', 'fe', 'e2e'].includes(mode)) {
+  console.error(
+    `Неизвестный режим: ${mode}. Используйте all, api, be, fe или e2e.`,
+  )
   process.exit(2)
 }
 
@@ -140,6 +144,38 @@ function parseVitest(output) {
   const passed = details.includes('passed')
     ? numberIn('passed')
     : total - failed - skipped
+
+  return {
+    total,
+    passed,
+    failed,
+    skipped,
+    executed: total - skipped,
+  }
+}
+
+function parsePlaywright(output) {
+  const plain = stripAnsi(output)
+  // Playwright's list reporter prints a summary such as:
+  //   Running 1 test using 1 worker
+  //   1 passed (4.5s)
+  // With failures the counts appear again in the trailing failure block, so the
+  // last occurrence of each label is the summary.
+  const counts = {}
+  for (const match of plain.matchAll(
+    /(\d+)\s+(passed|failed|flaky|skipped|interrupted|did not run)\b/g,
+  )) {
+    counts[match[2]] = Number(match[1])
+  }
+
+  const found = Object.keys(counts).length > 0
+  if (!found) return null
+
+  const passed = (counts.passed ?? 0) + (counts.flaky ?? 0)
+  const failed = (counts.failed ?? 0) + (counts.interrupted ?? 0)
+  const skipped = (counts.skipped ?? 0) + (counts['did not run'] ?? 0)
+  const total = passed + failed + skipped
+  if (total === 0) return null
 
   return {
     total,
@@ -279,6 +315,36 @@ async function checkFrontend() {
   }
 }
 
+async function checkE2E() {
+  printHeader('E2E · Playwright · Spring Boot + собранный фронтенд')
+  if (isGitHubActions) console.log('::group::E2E')
+
+  // `mise run e2e` собирает фронтенд и поднимает оба сервера через Playwright.
+  const result = await run('mise', ['run', 'e2e'])
+  const stats = parsePlaywright(result.output)
+  const ok = result.code === 0
+
+  if (isGitHubActions) console.log('::endgroup::')
+
+  printSummaryHeader('СВОДКА E2E', ok)
+  printTestStats(stats)
+  console.log(`  Проверки: Playwright в Chromium ${ok ? OK : FAIL}`)
+  if (!ok) {
+    console.log(
+      color.dim(
+        '  Подробности падения — в выводе Playwright выше (trace и скриншот в FE/test-results).',
+      ),
+    )
+  }
+  printSummaryFooter()
+
+  return {
+    ok,
+    stats,
+    label: 'E2E',
+  }
+}
+
 function printFinalSummary(results) {
   printHeader('ИТОГ ПО ПРОЕКТУ')
 
@@ -342,6 +408,7 @@ const results = []
 if (mode === 'all' || mode === 'api') results.push(await checkApi())
 if (mode === 'all' || mode === 'be') results.push(await checkBackend())
 if (mode === 'all' || mode === 'fe') results.push(await checkFrontend())
+if (mode === 'all' || mode === 'e2e') results.push(await checkE2E())
 
 printFinalSummary(results)
 
