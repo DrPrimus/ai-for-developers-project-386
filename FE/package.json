@@ -12,6 +12,7 @@
     "test:unit": "vitest run",
     "test:watch": "vitest",
     "e2e": "playwright test",
+    "verify:public": "node scripts/verify-public.mjs",
     "preview": "vite preview"
   },
   "dependencies": {
