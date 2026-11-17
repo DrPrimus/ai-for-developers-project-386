@@ -1,12 +1,13 @@
 amends "package://github.com/jdx/hk/releases/download/v2.11.1/hk@2.11.1#/Config.pkl"
 
-// `mise run check` runs both gates sequentially: backend (spotless check + full test suite,
-// the same one quality-gates CI runs via `mise run be-check`) and frontend (oxlint + vitest +
-// tsc + vite build + HTTP smoke). It prints a summary for each part and a final total.
+// `mise run check` runs the gates sequentially: API contract (TypeSpec compile + generated
+// artifacts freshness), backend (spotless check + full test suite, the same one quality-gates CI
+// runs via `mise run be-check`) and frontend (oxlint + vitest + tsc + vite build + HTTP smoke).
+// It prints a summary for each part and a final total.
 // Formatting is not fixed automatically: run `BE/mvnw -f BE/pom.xml spotless:apply`.
 steps {
   ["verify"] = new Step {
-    glob = List("BE/**", "FE/**", "mise.toml", "hk.pkl")
+    glob = List("api/**", "BE/**", "FE/**", "mise.toml", "hk.pkl")
     check = "mise run check"
   }
 }

@@ -6,9 +6,23 @@ maven = "latest"
 node = "24"
 
 [tasks.check]
-description = "Полная проверка проекта с отдельными сводками по бэкенду и фронтенду"
-depends = ["fe-install"]
+description = "Полная проверка проекта: контракт API, бэкенд и фронтенд"
+depends = ["api-install", "fe-install"]
 run = "node scripts/check.mjs all"
+
+[tasks.api-install]
+description = "Установить зависимости контракта API (TypeSpec)"
+run = "npm --prefix api install"
+
+[tasks.api-generate]
+description = "Сгенерировать OpenAPI и типы фронтенда из TypeSpec"
+depends = ["api-install"]
+run = "npm --prefix api run generate"
+
+[tasks.api-check]
+description = "Проверить TypeSpec и актуальность OpenAPI и типов фронтенда"
+depends = ["api-install"]
+run = "npm --prefix api run check"
 
 [tasks.be-build]
 description = "Скомпилировать бэкенд (spotless check + compile)"

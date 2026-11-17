@@ -1,12 +1,13 @@
 // Runs the project quality gates and prints a human-readable summary for each
-// part (backend / frontend) plus a final total.
+// part (API contract / backend / frontend) plus a final total.
 //
 // Reports are not written to disk: test counts are parsed from the regular
 // console output of Maven Surefire and Vitest. If the format cannot be parsed,
 // the summary says so, but the exit code still reflects the real result.
 //
 // Usage:
-//   node scripts/check.mjs        # backend + frontend
+//   node scripts/check.mjs        # API contract + backend + frontend
+//   node scripts/check.mjs api    # API contract only
 //   node scripts/check.mjs be     # backend only
 //   node scripts/check.mjs fe     # frontend only
 
@@ -18,8 +19,8 @@ import { fileURLToPath } from 'node:url'
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
 const mode = process.argv[2] ?? 'all'
 
-if (!['all', 'be', 'fe'].includes(mode)) {
-  console.error(`Неизвестный режим: ${mode}. Используйте all, be или fe.`)
+if (!['all', 'api', 'be', 'fe'].includes(mode)) {
+  console.error(`Неизвестный режим: ${mode}. Используйте all, api, be или fe.`)
   process.exit(2)
 }
 
@@ -176,6 +177,26 @@ function testsStatus(stats, stepOk) {
   return stepOk ? SKIP : FAIL
 }
 
+async function checkApi() {
+  printHeader('API · TypeSpec + OpenAPI + типы фронтенда')
+  if (isGitHubActions) console.log('::group::API')
+
+  const result = await run('mise', ['run', 'api-check'])
+  const ok = result.code === 0
+
+  if (isGitHubActions) console.log('::endgroup::')
+
+  printSummaryHeader('СВОДКА API', ok)
+  console.log(`  Проверки: компиляция и актуальность артефактов ${ok ? OK : FAIL}`)
+  printSummaryFooter()
+
+  return {
+    ok,
+    stats: null,
+    label: 'API',
+  }
+}
+
 async function checkBackend() {
   printHeader('БЭКЕНД · spotless + компиляция + тесты')
   if (isGitHubActions) console.log('::group::Бэкенд')
@@ -318,6 +339,7 @@ function printFinalSummary(results) {
 }
 
 const results = []
+if (mode === 'all' || mode === 'api') results.push(await checkApi())
 if (mode === 'all' || mode === 'be') results.push(await checkBackend())
 if (mode === 'all' || mode === 'fe') results.push(await checkFrontend())
 
