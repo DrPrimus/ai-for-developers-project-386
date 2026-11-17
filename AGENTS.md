@@ -9,8 +9,9 @@
 - `BE/` — модуль бэкенда (Spring Boot 4.1.2, Java 25, Maven). В корне репозитория нет сборочного файла.
 - `BE/src/main/java/ru/hexlet/_6/` — базовый пакет `ru.hexlet._6`, точка входа `Application.java`. Новый код кладите в этот пакет.
 - `FE/` — фронтенд: React 19, TypeScript, Vite 8, Tailwind CSS 4, UI-компоненты shadcn/ui. Алиас `@/*` → `FE/src/*`, компоненты shadcn/ui лежат в `FE/src/components/ui` и добавляются CLI (`npx shadcn@latest add <name>`), а не пишутся руками. Подробности — `FE/README.md`.
+- `FE/e2e/` — сквозной браузерный сценарий на Playwright (`FE/playwright.config.ts` поднимает настоящий Spring Boot и собранный фронтенд).
 - `api/` — контракт HTTP API на TypeSpec (Design First). Источник истины — `api/main.tsp`. Из него генерируются `api/openapi/openapi.yaml` и типы фронтенда `FE/src/api/schema.d.ts`; оба артефакта коммитятся и не редактируются руками. Бэкенд и фронтенд пишутся под этот контракт.
-- `.github/workflows/quality-gates.yml` — CI-гейт (запускает `mise run check`: бэкенд и фронтенд).
+- `.github/workflows/quality-gates.yml` — CI-гейт (устанавливает Chromium и запускает `mise run check`: контракт, бэкенд, фронтенд и E2E).
 - `.github/workflows/hexlet-check.yml` — автогенерируемая проверка Хекслета. Не редактируйте, не удаляйте и не переименовывайте её; не переименовывайте репозиторий.
 
 ## Команды
@@ -33,12 +34,17 @@
 - `mise run fe-check` — `node scripts/check.mjs fe`: `oxlint`, тесты Vitest, `tsc -b`, `vite build` и HTTP-смоук по собранному `dist`; печатает сводку по шагам
 - `npm --prefix FE run dev|build|lint` — те же шаги без mise (нужен установленный Node)
 
+E2E:
+
+- `mise run e2e-install` — один раз после установки зависимостей: ставит Chromium для Playwright (браузеры живут в кэше пользователя, в репозиторий не попадают)
+- `mise run e2e` — сборка фронтенда и `npx playwright test` в `FE`: Playwright сам поднимает настоящий Spring Boot (`spring-boot:run`, ждёт `/actuator/health`) и `vite preview` с proxy `/api` → `:8080`. Каждый прогон стартует новые процессы, поэтому хранилище пустое; оба сервера останавливаются Playwright после теста
+
 Общее:
 
 - `mise run api-generate` — пересобрать `api/openapi/openapi.yaml` и `FE/src/api/schema.d.ts` из TypeSpec
 - `mise run api-check` — проверить компиляцию TypeSpec и актуальность сгенерированных артефактов
-- `mise run check` — полная проверка проекта через `scripts/check.mjs`: контракт API, бэкенд и фронтенд запускаются последовательно, каждый в своём блоке; после каждой части печатается сводка, в конце — общая таблица по тестам. Цифры читаются из консольного вывода Maven и Vitest, файлы отчётов не создаются
-- `hk install --mise` — один раз после клона: включает git-хук `pre-commit` из `hk.pkl`, который запускает `mise run check` (контракт API, бэкенд и фронтенд) на изменённые `api/**`, `BE/**`, `FE/**`, `mise.toml`, `hk.pkl`. Сами хуки живут в `.git/` и в репозиторий не попадают, поэтому на каждой новой машине команду нужно повторить.
+- `mise run check` — полная проверка проекта через `scripts/check.mjs`: контракт API, бэкенд, фронтенд и E2E запускаются последовательно, каждый в своём блоке; после каждой части печатается сводка, в конце — общая таблица по тестам. Цифры читаются из консольного вывода Maven, Vitest и Playwright, файлы отчётов не создаются
+- `hk install --mise` — один раз после клона: включает git-хук `pre-commit` из `hk.pkl`, который запускает `mise run check` (контракт API, бэкенд, фронтенд и E2E) на изменённые `api/**`, `BE/**`, `FE/**`, `mise.toml`, `hk.pkl`. Сами хуки живут в `.git/` и в репозиторий не попадают, поэтому на каждой новой машине команду нужно повторить.
 
 ## Подводный камень с форматированием
 
@@ -94,7 +100,8 @@ chore: apply spotless formatting
 ## Тестирование
 
 - `/actuator/health` должен оставаться в состоянии `UP`; `ActuatorHealthTest` — smoke-тест для этого.
-- Фронтенд: компонентные тесты — Vitest + Testing Library в `jsdom` (`FE/src/**/*.test.tsx`, конфиг в `FE/vite.config.ts`, setup — `FE/src/test/setup.ts`). Они входят в `npm run test` вместе со сборкой и HTTP-смоуком `FE/scripts/smoke.mjs`, который поднимает `vite preview` на свободном порту и требует 200 для `/` и бандлов. E2E пока нет — заводить на Playwright, когда появится сквозной сценарий бронирования.
+- Фронтенд: компонентные тесты — Vitest + Testing Library в `jsdom` (`FE/src/**/*.test.tsx`, конфиг в `FE/vite.config.ts`, setup — `FE/src/test/setup.ts`). Они входят в `npm run test` вместе со сборкой и HTTP-смоуком `FE/scripts/smoke.mjs`, который поднимает `vite preview` на свободном порту и требует 200 для `/` и бандлов.
+- E2E: Playwright в Chromium (`FE/e2e/*.spec.ts`) на настоящих серверах — Spring Boot с хранилищем в памяти и собранный фронтенд. Один счастливый путь: владелец создаёт тип встречи, гость бронирует первый доступный слот из интерфейса, владелец видит встречу в предстоящих. Часы настоящие, дата не фиксируется; ошибки, конфликт и границы времени остаются на швах HTTP и компонентных тестов. Входит в `mise run check` после фронтенда.
 - Тестам не нужна внешняя инфраструктура, поэтому `mise run check` — достаточный шаг проверки.
 
 ## Agent skills
