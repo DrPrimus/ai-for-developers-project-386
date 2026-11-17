@@ -1,0 +1,13 @@
+.git
+.github
+.idea
+.agents
+docs
+**/node_modules
+BE/target
+FE/dist
+FE/test-results
+FE/playwright-report
+.env
+.env.*
+!.env.example
