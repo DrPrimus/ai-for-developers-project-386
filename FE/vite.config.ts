@@ -17,6 +17,10 @@ export default defineConfig({
     host: true,
     port: 80,
     strictPort: true,
+    // В dev API живёт на бэкенде; в production фронтенд и API — один origin.
+    proxy: {
+      '/api': 'http://localhost:8080',
+    },
   },
   preview: {
     host: true,

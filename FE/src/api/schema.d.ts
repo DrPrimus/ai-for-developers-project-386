@@ -120,7 +120,9 @@ export interface components {
         MeetingType: {
             /** Format: uuid */
             id: string;
+            /** @description Название после trim: 1–100 символов. */
             name: string;
+            /** @description Описание после trim: 1–500 символов. */
             description: string;
             /**
              * Format: int32
@@ -130,7 +132,9 @@ export interface components {
         };
         /** @description Данные для создания типа встречи. */
         MeetingTypeCreate: {
+            /** @description Название после trim: 1–100 символов. */
             name: string;
+            /** @description Описание после trim: 1–500 символов. */
             description: string;
             /**
              * Format: int32
