@@ -3,6 +3,9 @@ import type { components } from '@/api/schema'
 /** Единственный сетевой шов приложения: страницы ходят в API только через эти функции. */
 export type MeetingType = components['schemas']['MeetingType']
 export type MeetingTypeCreate = components['schemas']['MeetingTypeCreate']
+export type Slot = components['schemas']['Slot']
+export type DaySlots = components['schemas']['DaySlots']
+export type SlotListResponse = components['schemas']['SlotListResponse']
 export type FieldError = components['schemas']['FieldError']
 
 type ErrorBody = components['schemas']['ErrorResponse'] & {
@@ -62,4 +65,9 @@ export function createMeetingType(input: MeetingTypeCreate): Promise<MeetingType
     method: 'POST',
     body: JSON.stringify(input),
   })
+}
+
+/** Свободные слоты типа встречи на всё окно бронирования. */
+export function getSlots(meetingTypeId: string): Promise<SlotListResponse> {
+  return request<SlotListResponse>(`/meeting-types/${meetingTypeId}/slots`)
 }
