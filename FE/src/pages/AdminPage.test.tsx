@@ -3,7 +3,7 @@ import userEvent from '@testing-library/user-event'
 import { MemoryRouter } from 'react-router'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-import { createMeetingType, listMeetingTypes, ApiError } from '@/api/client'
+import { createMeetingType, listMeetingTypes, ApiError, listUpcomingMeetings } from '@/api/client'
 import { AppRoutes } from '@/App'
 
 vi.mock('@/api/client', async (importOriginal) => {
@@ -12,11 +12,13 @@ vi.mock('@/api/client', async (importOriginal) => {
     ...actual,
     listMeetingTypes: vi.fn(),
     createMeetingType: vi.fn(),
+    listUpcomingMeetings: vi.fn(),
   }
 })
 
 const listMock = vi.mocked(listMeetingTypes)
 const createMock = vi.mocked(createMeetingType)
+const upcomingMock = vi.mocked(listUpcomingMeetings)
 
 const CONSULTATION = {
   id: '11111111-1111-1111-1111-111111111111',
@@ -46,6 +48,11 @@ async function fillForm(
 beforeEach(() => {
   vi.clearAllMocks()
   listMock.mockResolvedValue([])
+  upcomingMock.mockResolvedValue({
+    timeZone: 'Europe/Moscow',
+    window: { from: '2026-11-17', to: '2026-11-30' },
+    items: [],
+  })
 })
 
 describe('админка: типы встреч', () => {

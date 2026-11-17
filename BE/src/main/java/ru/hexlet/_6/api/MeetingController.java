@@ -5,12 +5,14 @@ import java.util.Optional;
 import java.util.UUID;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import ru.hexlet._6.domain.MeetingType;
 import ru.hexlet._6.service.BookingService;
+import ru.hexlet._6.service.UpcomingMeetingsService;
 import ru.hexlet._6.store.InMemoryStore;
 
 /** Бронирование встреч гостем. */
@@ -20,10 +22,21 @@ public class MeetingController {
 
   private final InMemoryStore store;
   private final BookingService bookingService;
+  private final UpcomingMeetingsService upcomingMeetingsService;
 
-  public MeetingController(InMemoryStore store, BookingService bookingService) {
+  public MeetingController(
+      InMemoryStore store,
+      BookingService bookingService,
+      UpcomingMeetingsService upcomingMeetingsService) {
     this.store = store;
     this.bookingService = bookingService;
+    this.upcomingMeetingsService = upcomingMeetingsService;
+  }
+
+  /** Предстоящие встречи окна: начало строго позже текущего момента, порядок по началу. */
+  @GetMapping("/upcoming")
+  public UpcomingMeetingsResponse upcoming() {
+    return upcomingMeetingsService.upcoming();
   }
 
   /**

@@ -1,4 +1,5 @@
 import { MeetingTypesCard } from '@/components/admin/MeetingTypesCard'
+import { UpcomingMeetingsCard } from '@/components/admin/UpcomingMeetingsCard'
 
 export function AdminPage() {
   return (
@@ -8,10 +9,12 @@ export function AdminPage() {
           Админка
         </h1>
         <p className="text-muted-foreground">
-          Управляйте типами встреч, которые видит гость на странице записи.
+          Управляйте типами встреч, которые видит гость на странице записи, и
+          следите за предстоящими звонками.
         </p>
       </div>
       <MeetingTypesCard />
+      <UpcomingMeetingsCard />
     </main>
   )
 }

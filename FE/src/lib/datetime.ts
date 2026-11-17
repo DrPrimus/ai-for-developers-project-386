@@ -56,8 +56,8 @@ export function formatSlotLabel(
   return `${formatDayWithYear(date)}, ${formatTimeRange(startsAt, endsAt, timeZone)}`
 }
 
-/** Дата встречи из момента времени в часовом поясе сервиса: «вторник, 17 ноября 2026». */
-export function formatInstantDay(isoDateTime: string, timeZone: string) {
+/** Календарная дата момента в часовом поясе сервиса: «2026-11-17». */
+export function instantDateKey(isoDateTime: string, timeZone: string) {
   const parts = new Intl.DateTimeFormat('en-GB', {
     year: 'numeric',
     month: '2-digit',
@@ -66,7 +66,12 @@ export function formatInstantDay(isoDateTime: string, timeZone: string) {
   }).formatToParts(new Date(isoDateTime))
   const part = (type: Intl.DateTimeFormatPartTypes) =>
     parts.find((candidate) => candidate.type === type)?.value ?? ''
-  return formatDayWithYear(`${part('year')}-${part('month')}-${part('day')}`)
+  return `${part('year')}-${part('month')}-${part('day')}`
+}
+
+/** Дата встречи из момента времени в часовом поясе сервиса: «вторник, 17 ноября 2026». */
+export function formatInstantDay(isoDateTime: string, timeZone: string) {
+  return formatDayWithYear(instantDateKey(isoDateTime, timeZone))
 }
 
 /** Суббота или воскресенье — только для пометки «Выходной» в интерфейсе. */
