@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.2.1](https://github.com/DrPrimus/ai-for-developers-project-386/compare/v0.2.0...v0.2.1) (2026-11-17)
+
+
+### Documentation
+
+* require ticket references in commits ([0b82264](https://github.com/DrPrimus/ai-for-developers-project-386/commit/0b82264da91c8201dbcbc2ea825a5a3f980f3ab7))
+
 ## [0.2.0](https://github.com/DrPrimus/ai-for-developers-project-386/compare/v0.1.0...v0.2.0) (2026-11-17)
 
 
