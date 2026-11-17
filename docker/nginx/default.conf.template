@@ -1,0 +1,34 @@
+server {
+    # Public port. envsubst renders ${PORT} from the environment at container
+    # start; NGINX_ENVSUBST_FILTER=^PORT$ leaves nginx variables untouched.
+    listen ${PORT};
+    server_name _;
+
+    root /usr/share/nginx/html;
+    index index.html;
+
+    # Render's health check must reach Spring Boot, not the static files, so a
+    # new deploy only goes live once the JVM answers.
+    location = /actuator/health {
+        proxy_pass http://127.0.0.1:8081;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+
+    location /api/ {
+        proxy_pass http://127.0.0.1:8081;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+
+    # SPA fallback: /booking and /admin are client-side routes, not files.
+    location / {
+        try_files $uri $uri/ /index.html;
+    }
+}
