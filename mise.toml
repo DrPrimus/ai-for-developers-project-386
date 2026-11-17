@@ -67,7 +67,7 @@ run = "cd FE && npx playwright test"
 
 [tasks.verify-public]
 description = "Проверить развёрнутый сервис по PUBLIC_URL: бронь через UI и повтор через API (409)"
-depends = ["fe-install"]
+depends = ["fe-install", "e2e-install"]
 run = "node FE/scripts/verify-public.mjs"
 
 [tasks.docker-check]

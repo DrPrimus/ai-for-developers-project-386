@@ -143,7 +143,9 @@ async function main() {
 
     const typeButton = page
       .getByRole('list', { name: 'Типы встреч' })
-      .getByRole('button', { name: new RegExp(MEETING_TYPE.name) })
+      .getByRole('listitem')
+      .filter({ hasText: MEETING_TYPE.name })
+      .getByRole('button')
     await expectText(
       typeButton,
       `${MEETING_TYPE.durationMinutes} мин`,
@@ -151,10 +153,29 @@ async function main() {
     )
     await typeButton.click()
 
-    const firstSlot = page
+    const calendarDays = page
       .getByRole('list', { name: 'Календарь на 14 дней' })
-      .getByRole('button')
+      .getByRole('listitem')
+    await calendarDays
       .first()
+      .waitFor({ state: 'visible', timeout: STEP_TIMEOUT_MS })
+
+    // Берём день минимум с двумя слотами: первый слот бронируется, а второй
+    // гарантирует непустые альтернативы в ответе 409 на повторную бронь.
+    let firstSlot
+    const dayCount = await calendarDays.count()
+    for (let index = 0; index < dayCount; index += 1) {
+      const daySlots = calendarDays.nth(index).getByRole('button')
+      if ((await daySlots.count()) >= 2) {
+        firstSlot = daySlots.first()
+        break
+      }
+    }
+    assert.ok(
+      firstSlot,
+      `Не нашли день календаря с двумя и более слотами (дней: ${dayCount}); ` +
+        'для проверки 409 нужен день, где после брони остаётся альтернатива',
+    )
     await firstSlot.waitFor({ state: 'visible', timeout: STEP_TIMEOUT_MS })
 
     const slotLabel = await firstSlot.getAttribute('aria-label')

@@ -7,7 +7,20 @@ amends "package://github.com/jdx/hk/releases/download/v2.11.1/hk@2.11.1#/Config.
 // Formatting is not fixed automatically: run `BE/mvnw -f BE/pom.xml spotless:apply`.
 steps {
   ["verify"] = new Step {
-    glob = List("api/**", "BE/**", "FE/**", "mise.toml", "hk.pkl")
+    glob = List(
+      "api/**",
+      "BE/**",
+      "FE/**",
+      "docker/**",
+      "scripts/**",
+      "Dockerfile",
+      "render.yaml",
+      "opencode.json",
+      ".dockerignore",
+      ".env.example",
+      "mise.toml",
+      "hk.pkl",
+    )
     check = "mise run check"
   }
 }
