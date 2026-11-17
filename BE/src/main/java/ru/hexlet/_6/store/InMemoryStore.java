@@ -7,6 +7,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.locks.ReentrantLock;
+import java.util.function.Supplier;
 import org.springframework.stereotype.Component;
 import ru.hexlet._6.domain.Meeting;
 import ru.hexlet._6.domain.MeetingType;
@@ -27,6 +28,20 @@ public class InMemoryStore {
 
   public InMemoryStore(Clock clock) {
     this.clock = clock;
+  }
+
+  /**
+   * Выполняет действие под блокировкой записи. Нужна для атомарности «проверить состояние и
+   * изменить его»: например, для проверки пересечений и вставки встречи. Блокировка реентрантная,
+   * поэтому внутри можно вызывать {@link #createMeeting}.
+   */
+  public <T> T withWriteLock(Supplier<T> action) {
+    writeLock.lock();
+    try {
+      return action.get();
+    } finally {
+      writeLock.unlock();
+    }
   }
 
   /** Снимок типов встреч в порядке создания. */
@@ -60,9 +75,8 @@ public class InMemoryStore {
   }
 
   /**
-   * Добавляет встречу. Проверку пересечений и допустимости слота выполняет вызывающая сторона: в
-   * этом срезе встречи только читаются при расчёте слотов, а бронирование появится отдельным
-   * срезом.
+   * Добавляет встречу. Проверку пересечений и допустимости слота выполняет вызывающая сторона:
+   * {@link #withWriteLock} держит блокировку на всё время проверки и вставки.
    */
   public Meeting createMeeting(
       UUID meetingTypeId, int durationMinutes, Instant startsAt, Instant endsAt) {

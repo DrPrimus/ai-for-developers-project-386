@@ -57,6 +57,11 @@ public class SlotService {
         List.copyOf(days));
   }
 
+  /** Свободные слоты одного дня окна; для дня вне окна или выходного — пустой список. */
+  public List<SlotResponse> slotsForDay(MeetingType meetingType, LocalDate date) {
+    return slotsOfDay(date, meetingType.durationMinutes(), store.meetings(), clock.instant());
+  }
+
   private static List<SlotResponse> slotsOfDay(
       LocalDate date, int durationMinutes, List<Meeting> meetings, Instant now) {
     if (!CalendarRules.WORK_DAYS.contains(date.getDayOfWeek())) {
