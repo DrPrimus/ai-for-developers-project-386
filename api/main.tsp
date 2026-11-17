@@ -1,6 +1,8 @@
 import "@typespec/http";
+import "@typespec/json-schema";
 
 using TypeSpec.Http;
+using TypeSpec.JsonSchema;
 
 /** API сервиса бронирования календаря звонков. Контракт — источник истины для бэкенда и фронтенда. */
 @service(#{ title: "Календарь звонков" })
@@ -11,29 +13,35 @@ namespace CalendarApi;
 model MeetingType {
   @format("uuid")
   id: string;
+  /** Название после trim: 1–100 символов. */
   @minLength(1)
   @maxLength(100)
   name: string;
+  /** Описание после trim: 1–500 символов. */
   @minLength(1)
   @maxLength(500)
   description: string;
   /** Длительность слота в минутах: 5–480, кратно 5. */
   @minValue(5)
   @maxValue(480)
+  @multipleOf(5)
   durationMinutes: int32;
 }
 
 /** Данные для создания типа встречи. */
 model MeetingTypeCreate {
+  /** Название после trim: 1–100 символов. */
   @minLength(1)
   @maxLength(100)
   name: string;
+  /** Описание после trim: 1–500 символов. */
   @minLength(1)
   @maxLength(500)
   description: string;
   /** 5–480 минут, кратно 5. */
   @minValue(5)
   @maxValue(480)
+  @multipleOf(5)
   durationMinutes: int32;
 }
 
@@ -110,8 +118,8 @@ model ValidationErrorResponse extends ErrorResponse {
   fieldErrors?: FieldError[];
 }
 
-/** Ошибка занятого слота: альтернативы того же дня после конфликта. */
-model SlotConflictResponse extends ErrorResponse {
+/** Ошибка занятого слота: альтернативы того же дня после пересечения. */
+model SlotTakenResponse extends ErrorResponse {
   date: plainDate;
   slots: Slot[];
 }
@@ -146,9 +154,9 @@ model MeetingTypeNotFoundResponse {
 }
 
 @error
-model SlotTakenResponse {
+model SlotTakenErrorResponse {
   @statusCode statusCode: 409;
-  @body body: SlotConflictResponse;
+  @body body: SlotTakenResponse;
 }
 
 @route("/api/meeting-types")
@@ -165,7 +173,7 @@ interface MeetingTypes {
   /** Свободные слоты типа встречи на всё окно бронирования. */
   @get
   @route("/{meetingTypeId}/slots")
-  slots(@path meetingTypeId: string): SlotListResponse | MeetingTypeNotFoundResponse;
+  slots(@path @format("uuid") meetingTypeId: string): SlotListResponse | MeetingTypeNotFoundResponse;
 }
 
 @route("/api/meetings")
@@ -178,7 +186,7 @@ interface Meetings {
     | BadRequestResponse
     | InvalidSlotResponse
     | MeetingTypeNotFoundResponse
-    | SlotTakenResponse;
+    | SlotTakenErrorResponse;
 
   /** Предстоящие встречи в окне бронирования, отсортированные по началу. */
   @get

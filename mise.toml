@@ -6,7 +6,7 @@ maven = "latest"
 node = "24"
 
 [tasks.check]
-description = "Полная проверка проекта: контракт API, бэкенд и фронтенд"
+description = "Полная проверка проекта: контракт API, бэкенд, фронтенд и E2E"
 depends = ["api-install", "fe-install"]
 run = "node scripts/check.mjs all"
 
@@ -54,3 +54,13 @@ run = "npm --prefix FE run build"
 description = "Проверить фронтенд: линтер, тесты, сборка и HTTP-смоук"
 depends = ["fe-install"]
 run = "node scripts/check.mjs fe"
+
+[tasks.e2e-install]
+description = "Установить Chromium для Playwright (локально)"
+depends = ["fe-install"]
+run = "cd FE && npx playwright install chromium"
+
+[tasks.e2e]
+description = "Сквозной браузерный тест на настоящих серверах (Spring Boot + собранный фронтенд)"
+depends = ["fe-build"]
+run = "cd FE && npx playwright test"

@@ -59,6 +59,11 @@ api/node_modules/
 FE/dist/
 FE/dist-ssr/
 
+# Inside FE project - Playwright artifacts
+FE/test-results/
+FE/playwright-report/
+FE/blob-report/
+
 # Inside FE project - local env overrides
 FE/*.local
 

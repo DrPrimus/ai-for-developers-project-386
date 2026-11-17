@@ -38,7 +38,9 @@ npm run test   # компонентные тесты, сборка + HTTP-смо
 ```text
 FE/
 ├── components.json        # конфигурация shadcn/ui CLI
+├── e2e/                   # Playwright: сквозной сценарий и global setup
 ├── index.html
+├── playwright.config.ts   # webServer: настоящий Spring Boot + vite preview
 ├── vite.config.ts         # плагины React и Tailwind, алиас @, порт 80, конфиг Vitest
 ├── scripts/
 │   └── smoke.mjs          # HTTP-смоук собранного приложения
@@ -46,13 +48,22 @@ FE/
     ├── App.tsx            # маршруты и общий каркас приложения
     ├── main.tsx
     ├── index.css          # Tailwind + CSS-переменные темы shadcn/ui
+    ├── api/
+    │   ├── client.ts      # единственный сетевой шов: типизированные функции API
+    │   └── schema.d.ts    # сгенерированные из OpenAPI типы, не редактируются руками
     ├── components/
+    │   ├── LoadStateNotice.tsx  # общий блок «загрузка / ошибка с повтором / пусто»
+    │   ├── admin/         # карточки типов встреч и предстоящих встреч
+    │   ├── booking/       # выбор типа встречи и календарь слотов
     │   ├── layout/        # SiteHeader и другие элементы каркаса
     │   └── ui/            # сгенерированные компоненты shadcn/ui
     ├── pages/             # HomePage, BookingPage, AdminPage и их тесты
     ├── test/
-    │   └── setup.ts       # jest-dom и очистка DOM между тестами
-    └── lib/utils.ts       # хелпер cn
+    │   ├── setup.ts       # jest-dom и очистка DOM между тестами
+    │   └── fixtures.ts    # общие фикстуры компонентных тестов
+    └── lib/
+        ├── datetime.ts    # форматирование дат и времени в часовом поясе сервиса
+        └── utils.ts       # хелпер cn
 ```
 
 Маршруты: `/` — главная (витрина сервиса), `/booking` — запись гостя, `/admin` — админка владельца. Навигация — `react-router`.
@@ -78,8 +89,22 @@ FE/
      правильным `content-type` (ловит битую сборку, которую SPA-фолбэк маскирует под 200).
 
 Отдельно: `npm run test:unit` — только компонентные тесты, `npm run test:watch` — режим
-наблюдения. E2E-тестов пока нет — их стоит завести вместе со сквозным сценарием
-бронирования.
+наблюдения.
+
+## E2E
+
+Сквозной сценарий — Playwright в Chromium (`e2e/*.spec.ts`, конфиг `playwright.config.ts`).
+Конфиг поднимает два сервера: настоящий Spring Boot (`BE/mvnw spring-boot:run`, ждёт
+`/actuator/health`) и собранный фронтенд (`vite preview` на порту 4173, proxy `/api` →
+`:8080`). Оба процесса новый запуск создаёт заново, поэтому хранилище всегда пустое.
+
+```bash
+mise run e2e-install   # один раз: Chromium для Playwright
+mise run e2e           # сборка + npx playwright test
+```
+
+Без mise: `cd FE && npx playwright install chromium && npm run build && npm run e2e`.
+Сценарий не фиксирует дату: слот выбирается из интерфейса первым доступным.
 
 ## Добавление компонентов shadcn/ui
 

@@ -17,11 +17,20 @@ export default defineConfig({
     host: true,
     port: 80,
     strictPort: true,
+    // В dev API живёт на бэкенде; в production фронтенд и API — один origin.
+    proxy: {
+      '/api': 'http://localhost:8080',
+    },
   },
   preview: {
     host: true,
     port: 80,
     strictPort: true,
+    // Собранное приложение ходит в API на тот же origin, что и в production.
+    // В E2E бэкенд поднимается Playwright на порту 8080.
+    proxy: {
+      '/api': 'http://localhost:8080',
+    },
   },
   test: {
     environment: 'jsdom',
