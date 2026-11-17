@@ -2,19 +2,21 @@ import type { Slot, SlotListResponse } from '@/api/client'
 import { Button } from '@/components/ui/button'
 import {
   formatDayHeading,
-  formatDayWithYear,
+  formatSlotLabel,
   formatTimeRange,
   isWeekend,
 } from '@/lib/datetime'
 
 type Props = {
   data: SlotListResponse
-  /** Шов бронирования (#13): пока слот только выбирается, встреча не создаётся. */
+  /** Нажатие бронирует слот: отдельного подтверждения нет. */
   onSelectSlot: (slot: Slot) => void
+  /** Пока запрос бронирования выполняется, кнопки слотов заблокированы. */
+  disabled?: boolean
 }
 
 /** Вертикальный календарь на всё окно: день, подпись выходного/пустого дня и слоты-кнопки. */
-export function SlotCalendar({ data, onSelectSlot }: Props) {
+export function SlotCalendar({ data, onSelectSlot, disabled = false }: Props) {
   return (
     <section className="flex flex-col gap-3">
       <h2 id="booking-calendar-heading" className="font-heading text-lg font-semibold">
@@ -42,7 +44,13 @@ export function SlotCalendar({ data, onSelectSlot }: Props) {
                       key={slot.startsAt}
                       type="button"
                       variant="outline"
-                      aria-label={`${formatDayWithYear(day.date)}, ${range}`}
+                      disabled={disabled}
+                      aria-label={formatSlotLabel(
+                        day.date,
+                        slot.startsAt,
+                        slot.endsAt,
+                        data.timeZone,
+                      )}
                       onClick={() => onSelectSlot(slot)}
                     >
                       {range}

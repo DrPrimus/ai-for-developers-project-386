@@ -46,6 +46,29 @@ export function formatTimeRange(
   return `${formatTime(startsAt, timeZone)}–${formatTime(endsAt, timeZone)}`
 }
 
+/** Доступное имя кнопки слота: «вторник, 17 ноября 2026, 09:30–10:00». */
+export function formatSlotLabel(
+  date: string,
+  startsAt: string,
+  endsAt: string,
+  timeZone: string,
+) {
+  return `${formatDayWithYear(date)}, ${formatTimeRange(startsAt, endsAt, timeZone)}`
+}
+
+/** Дата встречи из момента времени в часовом поясе сервиса: «вторник, 17 ноября 2026». */
+export function formatInstantDay(isoDateTime: string, timeZone: string) {
+  const parts = new Intl.DateTimeFormat('en-GB', {
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    timeZone,
+  }).formatToParts(new Date(isoDateTime))
+  const part = (type: Intl.DateTimeFormatPartTypes) =>
+    parts.find((candidate) => candidate.type === type)?.value ?? ''
+  return formatDayWithYear(`${part('year')}-${part('month')}-${part('day')}`)
+}
+
 /** Суббота или воскресенье — только для пометки «Выходной» в интерфейсе. */
 export function isWeekend(date: string) {
   const dayOfWeek = asUtcDate(date).getUTCDay()
