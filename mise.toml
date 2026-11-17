@@ -64,3 +64,7 @@ run = "cd FE && npx playwright install chromium"
 description = "Сквозной браузерный тест на настоящих серверах (Spring Boot + собранный фронтенд)"
 depends = ["fe-build"]
 run = "cd FE && npx playwright test"
+
+[tasks.docker-check]
+description = "Собрать Docker-образ и проверить запуск на PORT=18080 и PORT=8080"
+run = "node scripts/docker-check.mjs"
