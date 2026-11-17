@@ -49,3 +49,25 @@ jobs:
       - name: Run quality gates check (contract + backend + frontend + E2E)
         run: |
           mise run check
+
+  docker:
+    runs-on: ubuntu-latest
+    # Cold image build (~2 min locally) plus two container runs; CI runners are
+    # slower and pull the base images, so leave a generous margin.
+    timeout-minutes: 40
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+
+      - name: Install mise
+        uses: jdx/mise-action@v5
+
+      - name: Build image and probe the container (PORT=18080 and PORT=8080)
+        run: mise run docker-check
+
+      - name: Remove leftover containers
+        if: always()
+        run: |
+          docker rm -f \
+            ai-for-developers-project-386-check-0 \
+            ai-for-developers-project-386-check-1 2>/dev/null || true
