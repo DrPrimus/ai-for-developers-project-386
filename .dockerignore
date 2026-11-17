@@ -8,6 +8,6 @@ BE/target
 FE/dist
 FE/test-results
 FE/playwright-report
-.env
-.env.*
-!.env.example
+**/.env
+**/.env.*
+!**/.env.example

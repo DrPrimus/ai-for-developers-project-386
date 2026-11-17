@@ -9,11 +9,16 @@ set -eu
 # thread stacks and a fast exit on OOM so the platform can restart the service.
 JAVA_OPTS="${JAVA_OPTS:--XX:MaxRAMPercentage=70 -XX:+UseSerialGC -Xss512k -XX:+ExitOnOutOfMemoryError}"
 
+# BACKEND_PORT is the single source of truth (set by the Dockerfile): Spring
+# Boot binds loopback only, leaving the public port to nginx.
+export SERVER_PORT="${BACKEND_PORT}"
+export SERVER_ADDRESS=127.0.0.1
+
 is_running() {
   kill -0 "$1" 2>/dev/null
 }
 
-echo "entrypoint: starting Spring Boot on ${SERVER_ADDRESS}:${SERVER_PORT}"
+echo "entrypoint: starting Spring Boot on 127.0.0.1:${BACKEND_PORT}"
 # Word splitting is intended: JAVA_OPTS is a flag list.
 # shellcheck disable=SC2086
 java $JAVA_OPTS -jar /app/app.jar &
